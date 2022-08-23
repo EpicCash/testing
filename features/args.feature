@@ -1,28 +1,15 @@
-Feature: Start a node on usernet
+Feature: Arithmetic operations
 
-Scenario: Test if the node can start at usernet with default policy
-  Given I have the <default> policy
-  And I am at <usernet>
-  When I start the node
-  Then The node is running
+  # Let's start with addition. BTW, this is a comment.
+  Scenario: User wants to multiply two numbers
+    Given the numbers "2" and "3"
+    When the User adds them
+    Then the User gets 6 as result
+    
+# Feature: Start a node on usernet
 
-
-
-
-# args:
-#   - floonet:
-#       help: Run epic against the Floonet (as opposed to mainnet)
-#       long: floonet
-#       takes_value: false
-#   - usernet:
-#       help: Run epic as a local-only network. Doesn't block peer connections but will not connect to any peer or seed
-#       long: usernet
-#       takes_value: false
-#   - noprogpow:
-#       help: Run epic floonet or usernet without progpow blocks
-#       long: noprogpow
-#       takes_value: false
-#   - onlyrandomx:
-#       help: Run epic floonet or usernet only with randomx blocks
-#       long: onlyrandomx
-#       takes_value: false
+# Scenario: Test if the node can start at usernet with default policy
+#   Given I have the <default> policy
+#   And I am at <usernet>
+#   When I start the node
+#   Then The node is running
