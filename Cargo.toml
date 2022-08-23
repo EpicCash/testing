@@ -6,8 +6,29 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [[test]]
-name = "cucumber"
+name = "floonet"
 harness = false
+
+[[test]]
+name = "mining"
+harness = false
+
+[[test]]
+name = "transactions"
+harness = false
+
+[[test]]
+name = "wallet_recovery"
+harness = false
+
+[[test]]
+name = "outputs_list"
+harness = false
+
+[[test]]
+name = "api"
+harness = false
+
 
 [dependencies]
 tokio = { version = "1.9.0", features = ["rt-multi-thread", "macros", "time"] }
