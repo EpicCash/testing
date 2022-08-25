@@ -1,74 +1,63 @@
-use cucumber_rust::{async_trait, Cucumber, World};
 use std::convert::Infallible;
+use std::process::Command;
+use std::process::Child;
 
-pub enum MyWorld {
-    Init,
-    Input(i32, i32),
-    Result(i32),
-    Error,
+use async_trait::async_trait;
+use cucumber::{given, World, WorldInit};
+
+#[derive(Debug, WorldInit)]
+pub struct EPICWorld {
+    binary_path: String,
+    network: String,
+    server_process: Child,
 }
 
 #[async_trait(?Send)]
-impl World for MyWorld {
+impl World for EPICWorld {
     type Error = Infallible;
 
     async fn new() -> Result<Self, Infallible> {
-        Ok(Self::Init)
+        Ok(Self {
+            binary_path: "".to_string(),
+            network: "".to_string(),
+            server_process: Command::new("echo")
+                .arg("")
+                .spawn()
+                .expect("failed to execute child"),
+        })
     }
 }
 
-mod test_steps {
-    use crate::MyWorld;
-    use cucumber_rust::Steps;
-    use testing::mult;
-
-    pub fn steps() -> Steps<MyWorld> {
-        let mut builder: Steps<MyWorld> = Steps::new();
-
-        builder.given_regex(
-            // This will match the "given" of multiplication
-            r#"^the numbers "(\d)" and "(\d)"$"#,
-            // and store the values inside context, which is a Vec<String>
-            |_world, context| {
-                // We start from [1] because [0] is the entire regex match
-                let world = MyWorld::Input(
-                    context.matches[1].parse::<i32>().unwrap(),
-                    context.matches[2].parse::<i32>().unwrap(),
-                );
-                world
-            }
-        );
-
-        builder.when(
-            "the User multiply them", 
-            |world, _context|{
-                match world {
-                    MyWorld::Input(l, r) => MyWorld::Result(mult(l,r)),
-                    _ => MyWorld::Error,
-                }
-            }
-        );
-
-        builder.then_regex(
-            r#"^the User gets "(\d)" as result$"#, 
-            |world, context|{
-                match world {
-                    MyWorld::Result(x) => assert_eq!(x.to_string(), context.matches[1]),
-                    _ => panic!("Invalid world state"),
-                };
-                MyWorld::Init
-            }
-        );
-
-        builder
-    }
+#[given(expr = "The epic-server binary is at {word}")]
+fn setting_binary_path(world: &mut EPICWorld, path: String) {
+    world.binary_path = path;
 }
 
-#[tokio::main]
-async fn main() {
-    Cucumber::<MyWorld>::new()
-        .features(&["./features"])
-        .steps(test_steps::steps())
-        .run_and_exit()
-        .await
+#[given(expr = "I am using the {word} network")]
+fn setting_network(world: &mut EPICWorld, network: String) {
+    world.network = network;
+    world.server_process = match world.network.as_str() {
+        "mainnet" => Command::new(&world.binary_path)
+                        .spawn()
+                        .expect("failed to execute process"),
+        "floonet" => Command::new(&world.binary_path)
+                        .arg("--floonet")
+                        .spawn()
+                        .expect("failed to execute process"),
+        "usernet" => Command::new(&world.binary_path)
+                        .arg("--usernet")
+                        .spawn()
+                        .expect("failed to execute process"),
+        _ => panic!("Specified network does not exist!")
+    };
+}
+
+#[given("The chain is synced")]
+fn check_sync(world: &mut EPICWorld) {
+    println!("AQUI 2");
+    world.server_process.kill().expect("falled to kill process");
+}
+
+fn main() {
+    futures::executor::block_on(EPICWorld::run("./features/api.feature"));
 }
