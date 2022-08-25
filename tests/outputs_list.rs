@@ -67,7 +67,7 @@ mod test_steps {
 #[tokio::main]
 async fn main() {
     Cucumber::<MyWorld>::new()
-        .features(&["./features"])
+        .features(&["./features/outputs_list.feature"])
         .steps(test_steps::steps())
         .run_and_exit()
         .await
