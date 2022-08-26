@@ -1,39 +1,52 @@
-use cucumber_rust::{async_trait, Cucumber, World};
-use std::{convert::Infallible, default};
+// Default
+use std::convert::Infallible;
+use std::fmt;
+use std::fs::remove_dir_all;
+use async_trait::async_trait;
+use cucumber::{given, World, WorldInit};
+
+//Epic Server
 use epic_chain::Chain;
+use epic_core::global;
+use epic_core::global::ChainTypes;
+use epic_core::core::{Block, pow::mine_genesis_block};
+use epic_util::util::init_test_logger;
 
-pub enum MyWorld {
-    Init,
-    Input(i32, i32),
-    Result(i32),
-    Error,
-}
+//Epic Wallet
+use epic_wallet_config::config::initial_setup_wallet;
 
-pub struct TransWorld {
-    pub output_dir: String,
-    pub chain: Option<Chain>,
+impl fmt::Debug for TransWorld {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Output_dir :{:?}", self.output_dir)
+    }
 }
 
 impl std::default::Default for TransWorld {
 	fn default() -> TransWorld {
 		TransWorld {
 			output_dir: ".epic".to_string(),
+            chain_type: ChainTypes::AutomatedTesting,
+            genesis: None,
 			chain: None,
 		}
 	}
 }
 
-#[async_trait(?Send)]
-impl World for MyWorld {
-    type Error = Infallible;
-
-    async fn new() -> Result<Self, Infallible> {
-        Ok(Self::Init)
-    }
+// These `Cat` definitions would normally be inside your project's code, 
+// not test code, but we create them here for the show case.
+#[derive(WorldInit)]
+struct TransWorld {
+    pub output_dir: String,
+    pub chain_type: ChainTypes,
+    pub genesis: Option<Block>,
+    pub chain: Option<Chain>,
 }
 
+// `World` needs to be implemented, so Cucumber knows how to construct it
+// for each scenario.
 #[async_trait(?Send)]
 impl World for TransWorld {
+    // We do require some error type.
     type Error = Infallible;
 
     async fn new() -> Result<Self, Infallible> {
@@ -41,85 +54,73 @@ impl World for TransWorld {
     }
 }
 
-mod test_steps {
-    use crate::{MyWorld, TransWorld};
-    use cucumber_rust::Steps;
-    use testing::mult;
+fn clean_output_dir(dir_name: &str) {
+    let _ = remove_dir_all(dir_name);
+}
 
-    pub fn steps_trans() -> Steps<TransWorld> {
-        let mut builder: Steps<TransWorld> = Steps::new();
 
-        builder.given(
-            "I have a chain", 
-            |world, _context|{
-                world
-            }
-        );
+fn setup(dir_name: &str, genesis: Block) -> Chain {
+    init_test_logger();
+    clean_output_dir(dir_name);
 
-        builder.given_regex(
-            "I have a </d> chain", 
-            |world, context|{
-                println!("---- {}", context.matches[1].to_lowercase().as_str());
-                match context.matches[1].to_lowercase().as_str() {
-					"testing" => Some(1), //global::set_mining_mode(ChainTypes::AutomatedTesting),
-					"mainnet" => Some(2),//global::set_mining_mode(ChainTypes::Mainnet),
-					"floonet" => Some(3),//global::set_mining_mode(ChainTypes::Floonet),
-					_ => panic!("Unknown chain type"),
-				};
-            world
-            }
-        );
+    chain::Chain::init(
+        dir_name.to_string(),
+        Arc::new(NoopAdapter {}),
+        genesis,
+        pow::verify_size,
+        false,
+    )
+    .unwrap()
+}
 
-        builder
-    }
 
-    pub fn steps() -> Steps<MyWorld> {
-        
-        let mut builder: Steps<MyWorld> = Steps::new();
+#[given(expr = "I configure {string} toml")]
+fn new_toml(world: &mut TransWorld, sys: String) {
+    let chain_t = world.chain_type;
+    let dir = world.output_dir;
+    match sys.as_str() {
+        "server and wallet" => {
+            // Init a Server Toml
+            // Init a Wallet Toml
+            None
+        },
+        "server" => {
+            // Init a Server Toml
+            None
+        },
+        "wallet" => {
+            // Init a Server Toml
+            let mut config = config::initial_setup_wallet(&chain_t, dir).unwrap_or_else(|e| {
+                panic!("Error loading wallet configuration: {}", e);
+            });
+        },
+        _ => (),
+    };
+}
 
-        builder.given_regex(
-            // This will match the "given" of multiplication
-            r#"^the numbers "(\d)" and "(\d)"$"#,
-            // and store the values inside context, which is a Vec<String>
-            |_world, context| {
-                // We start from [1] because [0] is the entire regex match
-                let world = MyWorld::Input(
-                    context.matches[1].parse::<i32>().unwrap(),
-                    context.matches[2].parse::<i32>().unwrap(),
-                );
-                world
-            }
-        );
+// Steps are defined with `given`, `when` and `then` attributes.
+#[given(expr = "I have a {word} chain")]
+fn network_chain(world: &mut TransWorld, chain_type: String) {
+    world.output_dir = ".output_dir".to_string();
+    let chain_typ = match chain_type.as_str() {
+        "testing" => ChainTypes::AutomatedTesting,
+        "mainnet" => ChainTypes::Mainnet,
+        "floonet" => ChainTypes::Floonet,
+        "usernet" => ChainTypes::UserTesting,
+        _ => panic!("Unknown chain type"),
+    };
+    global::set_mining_mode(chain_typ);
+    world.chain_type = chain_typ;
+    world.genesis = Some(mine_genesis_block().unwrap());
+    world.chain = Some(setup(&world.output_dir, world.genesis.as_ref().unwrap().clone()));
+}
 
-        builder.when(
-            "the User multiply them", 
-            |world, _context|{
-                match world {
-                    MyWorld::Input(l, r) => MyWorld::Result(mult(l,r)),
-                    _ => MyWorld::Error,
-                }
-            }
-        );
-
-        builder.then_regex(
-            r#"^the User gets "(\d)" as result$"#, 
-            |world, context|{
-                match world {
-                    MyWorld::Result(x) => assert_eq!(x.to_string(), context.matches[1]),
-                    _ => panic!("Invalid world state"),
-                };
-                MyWorld::Init
-            }
-        );
-        builder
-    }
+#[given(expr = "I have a wallet with {float} coins")]
+fn new_wallet(_world: &mut TransWorld, _coins: f32) {
+    println!("TESTANDO");
 }
 
 #[tokio::main]
 async fn main() {
-    Cucumber::<TransWorld>::new()
-        .features(&["./features/transactions.feature"])
-        .steps(test_steps::steps_trans())
-        .run_and_exit()
-        .await
+    TransWorld::run("./features/transactions.feature").await;
 }

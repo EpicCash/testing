@@ -1,9 +1,12 @@
 // Default
-use std::convert::Infallible;
 use std::fmt;
 use std::fs::remove_dir_all;
 use async_trait::async_trait;
 use cucumber::{given, World, WorldInit};
+use std::convert::Infallible;
+use std::process::Command;
+use std::process::Child;
+use std::env;
 
 //Epic Server
 use epic_chain::Chain;
@@ -24,14 +27,14 @@ impl fmt::Debug for TransWorld {
 impl std::default::Default for TransWorld {
 	fn default() -> TransWorld {
 		TransWorld {
-			output_dir: ".epic".to_string(),
+			output_dir: ".epic_test".to_string(),
             chain_type: ChainTypes::AutomatedTesting,
             genesis: None,
 			chain: None,
 		}
 	}
 }
-
+println!("{:?}",current_dir());
 // These `Cat` definitions would normally be inside your project's code, 
 // not test code, but we create them here for the show case.
 #[derive(WorldInit)]
