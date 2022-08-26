@@ -1,8 +1,9 @@
 Feature: Test the methods of transactions and interactions between send, receive and finalize
 
 Scenario:  Test File send methods
-  Given I have a <testing> chain
-  And I have a wallet with <2> coins
+  Given I have a testing chain
+  And I configure server and wallet toml
+  And I have a wallet with 2 coins
   When I send <1e-5> coins with <File> method
   And I receive the <File> transaction response
   And I finalize the <File> transaction
@@ -10,7 +11,7 @@ Scenario:  Test File send methods
   Then I have 2 new transactions in outputs with <1e-5> coins
 
 Scenario:  Test Emoji send methods
-  Given I have a <testing> chain
+  Given I have a testing chain
   And I have a wallet with <2> coins
   When I send <1e-5> coins with <Emoji> method
   And I receive the <Emoji> transaction response
@@ -19,22 +20,28 @@ Scenario:  Test Emoji send methods
   Then I have 2 new transactions in outputs with <1e-5> coins
 
 Scenario:  Test HTTP send methods
-  Given I have a <testing> chain
+  Given I have a testing chain
   And I have a wallet with <2> coins
   When I send <1e-5> coins with <HTTP> method
   And I await the confirm transaction
   Then I have 2 new transactions in outputs with <1e-5> coins
 
 Scenario:  Test Keybase/TOR send methods
-  Given I have a <testing> chain
+  Given I have a testing chain
   And I have a wallet with <2> coins
   When I send <1e-5> coins with <Keybase> method
   And I await the confirm transaction
   Then I have 2 new transactions in outputs with <1e-5> coins
 
 Scenario:  Test Self send methods
-  Given I have a <testing> chain
+  Given I have a testing chain
   And I have a wallet with <2> coins
   When I send <1e-5> coins with <Send> method
   And I await the confirm transaction
   Then I have 2 new transactions in outputs with <1e-5> coins
+
+Scenario: User wants to multiply two numbers
+    Given I have a chain
+    #Given the numbers "2" and "3"
+    #When the User multiply them
+    #Then the User gets "6" as result
