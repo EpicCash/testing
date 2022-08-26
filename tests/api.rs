@@ -58,6 +58,16 @@ fn check_sync(world: &mut EPICWorld) {
     world.server_process.kill().expect("falled to kill process");
 }
 
+<<<<<<< HEAD
 fn main() {
     futures::executor::block_on(EPICWorld::run("./features/api.feature"));
+=======
+#[tokio::main]
+async fn main() {
+    Cucumber::<MyWorld>::new()
+        .features(&["./features/api.feature"])
+        .steps(test_steps::steps())
+        .run_and_exit()
+        .await
+>>>>>>> 839d71d05076e315ca56d0e716268aa0202961a2
 }
