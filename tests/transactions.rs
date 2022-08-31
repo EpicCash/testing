@@ -1,12 +1,19 @@
 // Default
+use std::time::{Duration, Instant};
+use std::thread::sleep;
+
 use std::fmt;
 use std::fs::remove_dir_all;
+use std::process::Child;
 use async_trait::async_trait;
 use cucumber::{given, World, WorldInit};
 use std::convert::Infallible;
-use std::process::Command;
-use std::process::Child;
-use std::env;
+// use std::process::Command;
+// use std::process::Child;
+// use std::env;
+
+//Testing
+use testing::get_test_configuration;
 
 //Epic Server
 use epic_chain::Chain;
@@ -16,7 +23,7 @@ use epic_core::core::{Block, pow::mine_genesis_block};
 use epic_util::util::init_test_logger;
 
 //Epic Wallet
-use epic_wallet_config::config::initial_setup_wallet;
+//use epic_wallet_config::config::initial_setup_wallet;
 
 impl fmt::Debug for TransWorld {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -34,7 +41,7 @@ impl std::default::Default for TransWorld {
 		}
 	}
 }
-println!("{:?}",current_dir());
+
 // These `Cat` definitions would normally be inside your project's code, 
 // not test code, but we create them here for the show case.
 #[derive(WorldInit)]
@@ -43,6 +50,10 @@ struct TransWorld {
     pub chain_type: ChainTypes,
     pub genesis: Option<Block>,
     pub chain: Option<Chain>,
+    pub wallet: Child,
+    pub password: String,
+    pub passphrase: String, // only for recovery test
+    pub server: Child,
 }
 
 // `World` needs to be implemented, so Cucumber knows how to construct it
@@ -76,6 +87,30 @@ fn setup(dir_name: &str, genesis: Block) -> Chain {
     .unwrap()
 }
 
+#[given(expr = "I am using the {word} network")]
+fn using_network(world: &mut TransWorld) {
+    let chain_t = world.chain_type;
+    
+    // config epic-server.toml with custom configuration
+    get_test_configuration(&chain_t);
+
+    // check if epic-server.toml exist in home folder
+    // while don't exist -> sleep(1 sec)
+    // because if the get_test_configuration don't break => he create and save the file
+    // if t1 - t0 > 10 seconds => break
+    let t0 = Instant::now();
+    let dur = Duration::from_secs(5);
+    if t0.elapsed() > dur {
+        None
+    }
+    // If it exceeds this duration then it breaks
+
+    // run server and save on world
+
+    // run wallet and save on world
+
+
+}
 
 #[given(expr = "I configure {string} toml")]
 fn new_toml(world: &mut TransWorld, sys: String) {

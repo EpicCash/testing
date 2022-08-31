@@ -1,5 +1,9 @@
 Feature: Test the methods of transactions and interactions between send, receive and finalize
 
+Background: Defining settings
+  Given The epic-server binary is at /home/raul/Documentos/Brick_Abode/v3/epic/target/release/epic
+  And I am using the mainnet network
+
 Scenario:  Test File send methods
   Given I have a testing chain
   And I configure server and wallet toml

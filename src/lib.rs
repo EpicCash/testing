@@ -2,6 +2,8 @@ use std::process::{Command, Child};
 use std::path::PathBuf;
 use std::net::SocketAddr;
 use dirs::home_dir;
+use std::time::Duration;
+use std::thread::sleep;
 
 // Epic Server
 use epic_core::global::ChainTypes;
@@ -19,7 +21,16 @@ pub const TEST_EPIC_CHAIN_DIR: &'static str = "chain_data";
 pub const TEST_API_SECRET_FILE_NAME: &'static str = ".api_secret";
 
 
-pub fn spawn_network(chain_type: ChainTypes, binary_path: &str) -> Child {
+// Force the code to await for secs seconds, 
+pub fn wait_for(secs: u64) {
+    println!("BEFORE SLEEP");
+    let duration = Duration::from_secs(secs);
+    sleep(duration);
+    println!("AFTER SLEEP");
+}
+
+// Spawn server process by chain type
+pub fn spawn_network(chain_type: &ChainTypes, binary_path: &str) -> Child {
     let output = match chain_type {
         ChainTypes::Floonet => Command::new(&binary_path)
                                 .arg("--floonet")
