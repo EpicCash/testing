@@ -2,6 +2,7 @@ use std::process::{Command, Child};
 use std::path::PathBuf;
 use std::net::SocketAddr;
 use dirs::home_dir;
+use log::Level;
 use std::time::Duration;
 use std::thread::sleep;
 
@@ -92,6 +93,14 @@ pub fn change_server_toml_by_chain(toml_path: PathBuf ,chain_type: &ChainTypes) 
     // Change the run tui to off, set true if you want to run the server in terminal (don't recommended because you run test)
     server_toml.members.as_mut().unwrap()
                 .server.run_tui = Some(false);
+    
+    server_toml.members.as_mut().unwrap()
+                .logging.as_mut().unwrap()
+                .stdout_log_level = Level::Error;
+    
+    server_toml.members.as_mut().unwrap()
+                .logging.as_mut().unwrap()
+                .file_log_level = Level::Debug;
 
     match chain_type {
         ChainTypes::UserTesting => {

@@ -3243,6 +3243,7 @@ dependencies = [
  "epic_util",
  "epic_wallet_config",
  "futures 0.3.23",
+ "log",
  "tokio 1.20.1",
  "toml",
 ]
