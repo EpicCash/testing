@@ -1,9 +1,11 @@
-use std::process::{Command, Child};
+use std::process::{Command, Child, Output};
 use std::path::PathBuf;
 use std::net::SocketAddr;
 use dirs::home_dir;
+use log::Level;
 use std::time::Duration;
 use std::thread::sleep;
+use std::fs::remove_dir_all;
 
 // Epic Server
 use epic_core::global::ChainTypes;
@@ -23,11 +25,35 @@ pub const TEST_API_SECRET_FILE_NAME: &'static str = ".api_secret";
 
 // Force the code to await for secs seconds, 
 pub fn wait_for(secs: u64) {
-    println!("BEFORE SLEEP");
+    println!("BEFORE SLEEP == {} seconds", secs);
     let duration = Duration::from_secs(secs);
     sleep(duration);
-    println!("AFTER SLEEP");
+    println!("AFTER SLEEP == {} seconds", secs);
 }
+
+// ChainType to str shortname
+pub fn chain_type_to_str(chain_type: ChainTypes) -> String {
+    chain_type.shortname()
+}
+
+// str shortname to ChainTypes
+pub fn str_to_chain_type(shortname: &str) -> ChainTypes {
+    match shortname {
+        "auto" => ChainTypes::AutomatedTesting,
+        "user" => ChainTypes::UserTesting,
+        "floo" => ChainTypes::Floonet,
+        "main" => ChainTypes::Mainnet,
+        _ => panic!("Specified network does not exist!")
+    }
+}
+
+// Prepare the ip "a.b.c.d:port" to write to the server's toml
+pub fn get_ip_new(ip_v4: &str) -> PeerAddr {
+    let ip_floonet_vm:SocketAddr = ip_v4.parse().expect("Can't change the IPV4 into SocketAddr");
+    let ip_1 = PeerAddr(ip_floonet_vm);
+    ip_1
+}
+
 
 // Spawn server process by chain type
 pub fn spawn_network(chain_type: &ChainTypes, binary_path: &str) -> Child {
@@ -60,29 +86,6 @@ pub fn spawn_network(chain_type: &ChainTypes, binary_path: &str) -> Child {
     output
 }
 
-// ChainType to str shortname
-pub fn chain_type_to_str(chain_type: ChainTypes) -> String {
-    chain_type.shortname()
-}
-
-// str shortname to ChainTypes
-pub fn str_to_chain_type(shortname: &str) -> ChainTypes {
-    match shortname {
-        "auto" => ChainTypes::AutomatedTesting,
-        "user" => ChainTypes::UserTesting,
-        "floo" => ChainTypes::Floonet,
-        "main" => ChainTypes::Mainnet,
-        _ => panic!("Specified network does not exist!")
-    }
-}
-
-// Prepare the ip "a.b.c.d:port" to write to the server's toml
-pub fn get_ip_new(ip_v4: &str) -> PeerAddr {
-    let ip_floonet_vm:SocketAddr = ip_v4.parse().expect("Can't change the IPV4 into SocketAddr");
-    let ip_1 = PeerAddr(ip_floonet_vm);
-    ip_1
-}
-
 // Configure the epic-servert.toml to custom configuration
 pub fn change_server_toml_by_chain(toml_path: PathBuf ,chain_type: &ChainTypes) {
     // If the .epic/network folder doesn't exist => create and generate the default toml with the name "epic-server.toml"
@@ -92,6 +95,14 @@ pub fn change_server_toml_by_chain(toml_path: PathBuf ,chain_type: &ChainTypes) 
     // Change the run tui to off, set true if you want to run the server in terminal (don't recommended because you run test)
     server_toml.members.as_mut().unwrap()
                 .server.run_tui = Some(false);
+    
+    server_toml.members.as_mut().unwrap()
+                .logging.as_mut().unwrap()
+                .stdout_log_level = Level::Error;
+    
+    server_toml.members.as_mut().unwrap()
+                .logging.as_mut().unwrap()
+                .file_log_level = Level::Debug;
 
     match chain_type {
         ChainTypes::UserTesting => {
@@ -137,13 +148,91 @@ pub fn get_test_configuration(chain_type: &ChainTypes) {
 }
 
 // Don't check if exist, just build toml default path
-pub fn generate_toml_path(chain_type: &ChainTypes) -> PathBuf {
-    let mut toml_path = match home_dir() {
+pub fn get_home_chain(chain_type: &ChainTypes) -> PathBuf {
+    let mut home_path = match home_dir() {
 		Some(p) => p,
 		None => PathBuf::new(),
 	};
-	toml_path.push(TEST_EPIC_HOME);
-	toml_path.push(chain_type.shortname());
+	home_path.push(TEST_EPIC_HOME);
+	home_path.push(chain_type.shortname());
+    home_path
+}
+
+// Don't check if exist, just build toml default path
+pub fn generate_toml_path(chain_type: &ChainTypes) -> PathBuf {
+    let mut toml_path = get_home_chain(chain_type);
     toml_path.push(TEST_SERVER_CONFIG_FILE_NAME);
     toml_path
+}
+
+// Entry is a wallet init output and return the passprhase
+pub fn get_passphrase(output: &Output) -> String  {
+    // String of message
+    let output_msg = String::from_utf8_lossy(&output.stdout).into_owned();
+
+    // Split the message into a vector
+    let output_msg_vec = output_msg.split("\n").collect::<Vec<&str>>();
+    
+    // If we got a error on init a new wallet, the vector will have only 4 element
+    let result = match output_msg_vec.len() > 5 {
+        true => output_msg_vec[5].to_owned(),
+        false => panic!("Failed to get passphrase from wallet init!"),
+    };
+    result
+} 
+
+// Run the init command, if the wallet_data exist -> delete and create a new one
+pub fn create_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) -> Output {
+    // .epic/user ; .epic/floo or .epic/main
+    let mut wallet_data_path = get_home_chain(chain_type); 
+    wallet_data_path.push("wallet_data");
+
+    // if wallet_data exist -> remove
+    if wallet_data_path.exists() {
+        remove_dir_all(wallet_data_path).expect("Failed on remove old wallet_data");
+    }
+    
+    let wallet = match chain_type {
+        ChainTypes::UserTesting => {
+            Command::new(binary_path)
+                    .args(["-p", password, "--usernet", "init"])
+                    .output().expect("Failed on init a wallet")
+        },
+        ChainTypes::Floonet => {
+            Command::new(binary_path)
+                    .args(["-p", password, "--floonet", "init"])
+                    .output().expect("Failed on init a wallet")
+        },
+        _ => {
+            Command::new(binary_path)
+                    .args(["-p", password, "init"])
+                    .output().expect("Failed on init a wallet")
+        },
+    };
+    wallet
+}
+
+// Spawn a wallet in listen mode
+pub fn spawn_wallet_listen(chain_type: &ChainTypes, binary_path: &str, password: &str) -> Child {
+    let output = match chain_type {
+        ChainTypes::Floonet => Command::new(&binary_path)
+                                .args(["-p",password,"--floonet", "listen"])
+                                .spawn()
+                                .expect("failed to execute process"),
+        ChainTypes::UserTesting => Command::new(&binary_path)
+                                .args(["-p",password,"--usernet", "listen"])
+                                .spawn()
+                                .expect("failed to execute process"),
+        ChainTypes::Mainnet => Command::new(&binary_path)
+                                .args(["-p",password, "listen"])
+                                .spawn()
+                                .expect("failed to execute process"),
+        _ => panic!("Specified network does not exist!")
+    };
+    output
+}
+
+// Spawn a miner
+pub fn spawn_miner(binary_path: &str) -> Child {
+    Command::new(&binary_path).spawn().expect("Failed on start the miner")
 }
