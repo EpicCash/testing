@@ -8,30 +8,6 @@ use testing::{spawn_network, wait_for, get_test_configuration, get_home_chain};
 // Epir Server
 use epic_core::global::ChainTypes;
 
-// Spawn a wallet in listen mode
-pub fn spawn_wallet_listen(chain_type: &ChainTypes, binary_path: &str, password: &str) -> Child {
-    let output = match chain_type {
-        ChainTypes::Floonet => Command::new(&binary_path)
-                                .args(["-p",password,"--floonet", "listen"])
-                                .spawn()
-                                .expect("failed to execute process"),
-        ChainTypes::UserTesting => Command::new(&binary_path)
-                                .args(["-p",password,"--usernet", "listen"])
-                                .spawn()
-                                .expect("failed to execute process"),
-        ChainTypes::Mainnet => Command::new(&binary_path)
-                                .args(["-p",password, "listen"])
-                                .spawn()
-                                .expect("failed to execute process"),
-        _ => panic!("Specified network does not exist!")
-    };
-    output
-}
-
-// Spawn a miner
-pub fn spawn_miner(binary_path: &str) -> Child {
-    Command::new(&binary_path).spawn().expect("Failed on start the miner")
-}
 
 #[allow(unused_variables)]
 fn main() {

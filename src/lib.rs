@@ -31,6 +31,30 @@ pub fn wait_for(secs: u64) {
     println!("AFTER SLEEP == {} seconds", secs);
 }
 
+// ChainType to str shortname
+pub fn chain_type_to_str(chain_type: ChainTypes) -> String {
+    chain_type.shortname()
+}
+
+// str shortname to ChainTypes
+pub fn str_to_chain_type(shortname: &str) -> ChainTypes {
+    match shortname {
+        "auto" => ChainTypes::AutomatedTesting,
+        "user" => ChainTypes::UserTesting,
+        "floo" => ChainTypes::Floonet,
+        "main" => ChainTypes::Mainnet,
+        _ => panic!("Specified network does not exist!")
+    }
+}
+
+// Prepare the ip "a.b.c.d:port" to write to the server's toml
+pub fn get_ip_new(ip_v4: &str) -> PeerAddr {
+    let ip_floonet_vm:SocketAddr = ip_v4.parse().expect("Can't change the IPV4 into SocketAddr");
+    let ip_1 = PeerAddr(ip_floonet_vm);
+    ip_1
+}
+
+
 // Spawn server process by chain type
 pub fn spawn_network(chain_type: &ChainTypes, binary_path: &str) -> Child {
     let output = match chain_type {
@@ -60,29 +84,6 @@ pub fn spawn_network(chain_type: &ChainTypes, binary_path: &str) -> Child {
     //             .expect("failed to execute server process")
     // };
     output
-}
-
-// ChainType to str shortname
-pub fn chain_type_to_str(chain_type: ChainTypes) -> String {
-    chain_type.shortname()
-}
-
-// str shortname to ChainTypes
-pub fn str_to_chain_type(shortname: &str) -> ChainTypes {
-    match shortname {
-        "auto" => ChainTypes::AutomatedTesting,
-        "user" => ChainTypes::UserTesting,
-        "floo" => ChainTypes::Floonet,
-        "main" => ChainTypes::Mainnet,
-        _ => panic!("Specified network does not exist!")
-    }
-}
-
-// Prepare the ip "a.b.c.d:port" to write to the server's toml
-pub fn get_ip_new(ip_v4: &str) -> PeerAddr {
-    let ip_floonet_vm:SocketAddr = ip_v4.parse().expect("Can't change the IPV4 into SocketAddr");
-    let ip_1 = PeerAddr(ip_floonet_vm);
-    ip_1
 }
 
 // Configure the epic-servert.toml to custom configuration
@@ -209,4 +210,29 @@ pub fn create_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str)
         },
     };
     wallet
+}
+
+// Spawn a wallet in listen mode
+pub fn spawn_wallet_listen(chain_type: &ChainTypes, binary_path: &str, password: &str) -> Child {
+    let output = match chain_type {
+        ChainTypes::Floonet => Command::new(&binary_path)
+                                .args(["-p",password,"--floonet", "listen"])
+                                .spawn()
+                                .expect("failed to execute process"),
+        ChainTypes::UserTesting => Command::new(&binary_path)
+                                .args(["-p",password,"--usernet", "listen"])
+                                .spawn()
+                                .expect("failed to execute process"),
+        ChainTypes::Mainnet => Command::new(&binary_path)
+                                .args(["-p",password, "listen"])
+                                .spawn()
+                                .expect("failed to execute process"),
+        _ => panic!("Specified network does not exist!")
+    };
+    output
+}
+
+// Spawn a miner
+pub fn spawn_miner(binary_path: &str) -> Child {
+    Command::new(&binary_path).spawn().expect("Failed on start the miner")
 }
