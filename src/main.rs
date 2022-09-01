@@ -1,108 +1,67 @@
 // std
-use std::{process::{Command, Child, Output}, array};
-use std::io;
-use std::io::Write;
+use std::{process::{Command, Child, Output}, array, str::Split, path::PathBuf};
+use std::fs::remove_dir_all;
 
 // Testing
-use testing::{spawn_network, wait_for, get_test_configuration};
+use testing::{spawn_network, wait_for, get_test_configuration, get_home_chain};
 
 // Epir Server
 use epic_core::global::ChainTypes;
 
-// Spawn wallet process by chain type
-pub fn spawn_wallet(chain_type: &ChainTypes, binary_path: &str) -> Child {
+// Spawn a wallet in listen mode
+pub fn spawn_wallet_listen(chain_type: &ChainTypes, binary_path: &str, password: &str) -> Child {
     let output = match chain_type {
         ChainTypes::Floonet => Command::new(&binary_path)
-                                .arg("--floonet")
+                                .args(["-p",password,"--floonet", "listen"])
                                 .spawn()
                                 .expect("failed to execute process"),
         ChainTypes::UserTesting => Command::new(&binary_path)
-                                .arg("--usernet")
+                                .args(["-p",password,"--usernet", "listen"])
                                 .spawn()
                                 .expect("failed to execute process"),
         ChainTypes::Mainnet => Command::new(&binary_path)
+                                .args(["-p",password, "listen"])
                                 .spawn()
                                 .expect("failed to execute process"),
         _ => panic!("Specified network does not exist!")
     };
-    // let output = if cfg!(target_os = "windows") {
-    //     Command::new("cmd")
-    //             .args(["/C", "echo hello"])
-    //             .output()
-    //             .expect("failed to execute server process")
-    // } else {
-    //     Command::new(binary_path)
-    //             .arg("--floonet")
-    //             .arg("echo hello")
-    //             .output()
-    //             .expect("failed to execute server process")
-    // };
     output
 }
 
-fn create_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) -> Output {
-    let mut wallet = match chain_type {
-        ChainTypes::UserTesting => {
-            Command::new(binary_path)
-                    .args(["-p", password, "--usernet", "init"])
-                    .output().expect("Failed on init a wallet")
-        },
-        ChainTypes::Floonet => {
-            Command::new(binary_path)
-                    .args(["-p", password, "--floonet", "init"])
-                    .output().expect("Failed on init a wallet")
-        },
-        _ => {
-            Command::new(binary_path)
-                    .args(["-p", password, "init"])
-                    .output().expect("Failed on init a wallet")
-        },
-    };
-    wallet
+// Spawn a miner
+pub fn spawn_miner(binary_path: &str) -> Child {
+    Command::new(&binary_path).spawn().expect("Failed on start the miner")
 }
 
-fn check_stdout(output_stdout: &Vec<u8>) -> Vec<&str> {
-    
-    let str_msg = String::from_utf8_lossy(&output_stdout).to_string();
-    
-    let ss = str_msg.clone();
-
-    let result:Vec<&str> = if str_msg.contains("successfully") {
-        ss.split("\n\n").collect()
-    } else {
-        ss.split("\n").collect()
-    };
-    result
-}
-
-#[warn(unused_variables)]
+#[allow(unused_variables)]
 fn main() {
 
     let chain_type = ChainTypes::UserTesting;
     let password = "1";
-    get_test_configuration(&chain_type);
-    wait_for(5);
+    
+    //get_test_configuration(&chain_type);
+    //wait_for(5);
 
     let server_binary = "/home/ba/Desktop/EpicV3/epic/target/release/epic";
     let wallet_binary = "/home/ba/Desktop/EpicV3/epic-wallet/target/release/epic-wallet";
-    //let mut serv = spawn_network(&chain_type, server_binary);
+    let miner_binary = "/home/ba/Desktop/epic-miner/target/debug/epic-miner";
+    let mut serv = spawn_network(&chain_type, server_binary);
 
-    let mut te = Command::new(server_binary).args(["--usernet", "--onlyrandomx"]).spawn().expect("msg");
-    
-    println!("----------------------------");
-    
-    let mut wallet = create_wallet(&chain_type, wallet_binary, password);
-    println!("{:#?}", check_stdout(&wallet.stdout));
-    if wallet.status.success() {
-      println!("----Sucesso---");  
-    } 
+    //let mut te = Command::new(server_binary).args(["--usernet", "--onlyrandomx"]).spawn().expect("msg");
 
+    wait_for(4);
 
-    wait_for(1);
+    let mut listen = spawn_wallet_listen(&chain_type, wallet_binary, password);
 
-    te.kill();
-    //serv.kill().expect("Fail to kill server process!");
-    //wallet.kill().expect("Fail to kill wallet process!");
-    
+    wait_for(5);
+
+    let mut miner = spawn_miner(miner_binary);
+
+    wait_for(60);
+
+    listen.kill().expect("Failed on kill wallet");
+    serv.kill().expect("Failed on kill server");
+    miner.kill().expect("Failed on kill miner");
+
     println!("---------- END OF TEST ----------")
 } 
