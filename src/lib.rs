@@ -165,7 +165,7 @@ pub fn generate_toml_path(chain_type: &ChainTypes) -> PathBuf {
 }
 
 // Entry is a wallet init output and return the passprhase
-pub fn get_passphare(output: &Output) -> String  {
+pub fn get_passphrase(output: &Output) -> String  {
     // String of message
     let output_msg = String::from_utf8_lossy(&output.stdout).into_owned();
 
