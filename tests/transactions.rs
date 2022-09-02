@@ -1,43 +1,54 @@
-// Default
-use std::time::{Duration, Instant};
-use std::thread::sleep;
-
-use std::fmt;
-use std::fs::remove_dir_all;
+use std::{fmt, process::Output};
 use std::process::Child;
 use async_trait::async_trait;
-use cucumber::{given, World, WorldInit};
+use cucumber::{given, when, World, WorldInit};
 use std::convert::Infallible;
-// use std::process::Command;
-// use std::process::Child;
-// use std::env;
+use std::process::Command;
 
 //Testing
-use testing::get_test_configuration;
+use testing::{
+            wait_for,
+            get_test_configuration,
+            spawn_network,
+            create_wallet,
+            str_to_chain_type,
+            spawn_miner, spawn_wallet_listen,
+            get_passphrase,
+            send_coins_smallest,
+            };
 
-//Epic Server
-use epic_chain::Chain;
-use epic_core::global;
+// Epic Server
 use epic_core::global::ChainTypes;
-use epic_core::core::{Block, pow::mine_genesis_block};
-use epic_util::util::init_test_logger;
 
 //Epic Wallet
 //use epic_wallet_config::config::initial_setup_wallet;
 
 impl fmt::Debug for TransWorld {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Output_dir :{:?}", self.output_dir)
+        write!(f, "chain_type :{:?}", self.chain_type)
     }
+}
+
+fn new_child() -> Child {
+    Command::new("").spawn().expect("Failed on run a empty Child process")
+}
+
+fn new_output() -> Output {
+    Command::new("").output().expect("Failed on run a empty Output process")
 }
 
 impl std::default::Default for TransWorld {
 	fn default() -> TransWorld {
 		TransWorld {
-			output_dir: ".epic_test".to_string(),
-            chain_type: ChainTypes::AutomatedTesting,
-            genesis: None,
-			chain: None,
+            chain_type: ChainTypes::UserTesting,
+            password: String::from("1"),
+            passphrase: String::new(),
+            server_binary: String::new(),
+            wallet_binary: String::new(),
+            miner_binary: String::new(),
+            server: new_child(),
+            wallet: new_child(),
+            miner: new_child(),
 		}
 	}
 }
@@ -46,14 +57,15 @@ impl std::default::Default for TransWorld {
 // not test code, but we create them here for the show case.
 #[derive(WorldInit)]
 struct TransWorld {
-    pub output_dir: String,
     pub chain_type: ChainTypes,
-    pub genesis: Option<Block>,
-    pub chain: Option<Chain>,
+    pub server: Child,
     pub wallet: Child,
+    pub miner: Child,
     pub password: String,
     pub passphrase: String, // only for recovery test
-    pub server: Child,
+    pub server_binary: String,
+    pub wallet_binary: String,
+    pub miner_binary: String,
 }
 
 // `World` needs to be implemented, so Cucumber knows how to construct it
@@ -68,95 +80,68 @@ impl World for TransWorld {
     }
 }
 
-fn clean_output_dir(dir_name: &str) {
-    let _ = remove_dir_all(dir_name);
-}
-
-
-fn setup(dir_name: &str, genesis: Block) -> Chain {
-    init_test_logger();
-    clean_output_dir(dir_name);
-
-    chain::Chain::init(
-        dir_name.to_string(),
-        Arc::new(NoopAdapter {}),
-        genesis,
-        pow::verify_size,
-        false,
-    )
-    .unwrap()
+#[given(expr = "The {string} binary is at {string}")]
+fn set_binary(world: &mut TransWorld, epic_sys: String, path: String) {
+    match epic_sys.as_str() {
+        "epic-server" => world.server_binary = path,
+        "epic-wallet" => world.wallet_binary = path,
+        "epic-miner" => world.miner_binary = path,
+        _ => panic!("Invalid system of epic"),
+    }
 }
 
 #[given(expr = "I am using the {word} network")]
-fn using_network(world: &mut TransWorld) {
-    let chain_t = world.chain_type;
-    
-    // config epic-server.toml with custom configuration
-    get_test_configuration(&chain_t);
+fn using_network(world: &mut TransWorld, str_chain: String) {
 
-    // check if epic-server.toml exist in home folder
-    // while don't exist -> sleep(1 sec)
-    // because if the get_test_configuration don't break => he create and save the file
-    // if t1 - t0 > 10 seconds => break
-    let t0 = Instant::now();
-    let dur = Duration::from_secs(5);
-    if t0.elapsed() > dur {
-        None
-    }
-    // If it exceeds this duration then it breaks
+    let chain_t = str_to_chain_type(&str_chain);
+    
+    world.chain_type = chain_t;
+    // config epic-server.toml with custom configuration
+    get_test_configuration(&world.chain_type);
+    // Wait the epic-servet.toml work
+    wait_for(5);
 
     // run server and save on world
+    world.server = spawn_network(&world.chain_type, world.server_binary.as_str());
 
     // run wallet and save on world
+    let mut wallet_init = create_wallet(&world.chain_type, world.wallet_binary.as_str(), world.password.as_str());
 
+    // save passphrase on world
+    world.passphrase = get_passphrase(&wallet_init);
 
+    // save the wallet_listen process on world
+    world.wallet = spawn_wallet_listen(&world.chain_type, world.wallet_binary.as_str(), world.password.as_str());
+
+    // Run the miner
+    world.miner = spawn_miner(&world.miner_binary);
 }
 
-#[given(expr = "I configure {string} toml")]
-fn new_toml(world: &mut TransWorld, sys: String) {
-    let chain_t = world.chain_type;
-    let dir = world.output_dir;
-    match sys.as_str() {
-        "server and wallet" => {
-            // Init a Server Toml
-            // Init a Wallet Toml
-            None
+#[given("I mine some blocks into my wallet")]
+fn mine_some_coins(_world: &mut TransWorld) {
+    // Wait for 5~10 blocks
+    wait_for(180);
+}
+
+#[when(expr = "I send {word} coins with {word} method")]
+fn send_coins(world: &mut TransWorld, amount: String, method: String) {
+    // TODO if wallet have > 0 coins
+    
+    // TODO destination (File and HTTP methods)
+
+    // If method is HTTP or file, send command needs a destination
+    let send_output = match method.as_str() {
+        "HTTP" | "file" => {
+            panic!("Destionation not implemented yet");
+            new_output()
         },
-        "server" => {
-            // Init a Server Toml
-            None
-        },
-        "wallet" => {
-            // Init a Server Toml
-            let mut config = config::initial_setup_wallet(&chain_t, dir).unwrap_or_else(|e| {
-                panic!("Error loading wallet configuration: {}", e);
-            });
-        },
-        _ => (),
+        _ => send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, String::new())
     };
+    
+    assert!(send_output.status.success())
+
 }
 
-// Steps are defined with `given`, `when` and `then` attributes.
-#[given(expr = "I have a {word} chain")]
-fn network_chain(world: &mut TransWorld, chain_type: String) {
-    world.output_dir = ".output_dir".to_string();
-    let chain_typ = match chain_type.as_str() {
-        "testing" => ChainTypes::AutomatedTesting,
-        "mainnet" => ChainTypes::Mainnet,
-        "floonet" => ChainTypes::Floonet,
-        "usernet" => ChainTypes::UserTesting,
-        _ => panic!("Unknown chain type"),
-    };
-    global::set_mining_mode(chain_typ);
-    world.chain_type = chain_typ;
-    world.genesis = Some(mine_genesis_block().unwrap());
-    world.chain = Some(setup(&world.output_dir, world.genesis.as_ref().unwrap().clone()));
-}
-
-#[given(expr = "I have a wallet with {float} coins")]
-fn new_wallet(_world: &mut TransWorld, _coins: f32) {
-    println!("TESTANDO");
-}
 
 #[tokio::main]
 async fn main() {

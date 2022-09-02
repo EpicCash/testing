@@ -60,10 +60,12 @@ pub fn spawn_network(chain_type: &ChainTypes, binary_path: &str) -> Child {
     let output = match chain_type {
         ChainTypes::Floonet => Command::new(&binary_path)
                                 .arg("--floonet")
+                                .arg("--onlyrandomx")
                                 .spawn()
                                 .expect("failed to execute process"),
         ChainTypes::UserTesting => Command::new(&binary_path)
                                 .arg("--usernet")
+                                .arg("--onlyrandomx")
                                 .spawn()
                                 .expect("failed to execute process"),
         ChainTypes::Mainnet => Command::new(&binary_path)
@@ -235,4 +237,68 @@ pub fn spawn_wallet_listen(chain_type: &ChainTypes, binary_path: &str, password:
 // Spawn a miner
 pub fn spawn_miner(binary_path: &str) -> Child {
     Command::new(&binary_path).spawn().expect("Failed on start the miner")
+}
+
+// run the command ./epic-wallet --network -p <password> send -m <method> -s smallest <amount>
+pub fn send_coins_smallest(chain_type: &ChainTypes, binary_path: &String, method: String, password: &String, amount: String, destination: String) -> Output {
+    
+    //let str_amount = f32::to_string(&amount);
+
+    let network = match chain_type {
+        ChainTypes::Floonet => "--floonet",
+        ChainTypes::UserTesting => "--usernet",
+        ChainTypes::Mainnet => "",
+        _ => panic!("Specified network does not exist!"),
+    };
+
+    let output = match destination.len() > 0 {
+        true => {
+            match chain_type {
+                ChainTypes::Mainnet => Command::new(&binary_path)
+                                            .args(["-p", password.as_str() ,"send", "-m", method.as_str(), "-d", destination.as_str() ,"-s", "smallest", amount.as_str()])
+                                            .output()
+                                            .expect("failed to execute process"),
+
+                _                   => Command::new(&binary_path)
+                                            .args(["-p", password.as_str(), network ,"send", "-m", method.as_str(), "-d", destination.as_str() ,"-s", "smallest", amount.as_str()])
+                                            .output()
+                                            .expect("failed to execute process"),
+            }
+        },
+        false => {
+            match chain_type {
+                ChainTypes::Mainnet => Command::new(&binary_path)
+                                            .args(["-p", password.as_str() ,"send", "-m", method.as_str() ,"-s", "smallest", amount.as_str()])
+                                            .output()
+                                            .expect("failed to execute process"),
+                _                   => Command::new(&binary_path)
+                                            .args( ["-p", password.as_str(), network ,"send", "-m", method.as_str() ,"-s", "smallest", amount.as_str()])
+                                            .output()
+                                            .expect("failed to execute process"),
+            }
+        },
+    };
+
+    // let output = match chain_type {
+    //     ChainTypes::Floonet => Command::new(&binary_path)
+    //                             .args(["-p", password.as_str(), "--floonet", "send", "-m", method.as_str(), "-s", "smallest", amount.as_str()])
+    //                             .output()
+    //                             .expect("failed to execute process"),
+    //     ChainTypes::UserTesting => Command::new(&binary_path)
+    //                             .args(["-p", password.as_str(), "--usernet", "", "send", "-m", method.as_str(), "-s", "smallest", amount.as_str()])
+    //                             .output()
+    //                             .expect("failed to execute process"),
+    //     ChainTypes::Mainnet => Command::new(&binary_path)
+    //                             .args(["-p", password.as_str(), "send", "-m", method.as_str(), "-s", "smallest", amount.as_str()])
+    //                             .output()
+    //                             .expect("failed to execute process"),
+    //     _ => panic!("Specified network does not exist!")
+    // };
+
+    //String::from_utf8_lossy(&output.stdout).contains("successfully")
+    output
+}
+
+pub fn confirm_transaction() {
+    wait_for(300)
 }
