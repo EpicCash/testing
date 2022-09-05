@@ -1,10 +1,10 @@
 Feature: Test the methods of transactions and interactions between send, receive and finalize
 
 Background: Defining settings
-  Given The epic-server binary is at "/home/ba/Desktop/EpicV3/epic/target/release/epic"
-  And The epic-wallet binary is at /home/ba/Desktop/EpicV3/epic-wallet/target/release/epic-wallet
-  And The epic-miner binary is at /home/ba/Desktop/epic-miner/target/debug/epic-miner
-  And I am using the usernet network
+  Given The "epic-server" binary is at "/home/ba/Desktop/EpicV3/epic/target/release/epic"
+  And The "epic-wallet" binary is at "/home/ba/Desktop/EpicV3/epic-wallet/target/release/epic-wallet"
+  And The "epic-miner" binary is at "/home/ba/Desktop/epic-miner/target/debug/epic-miner"
+  And I am using the "usernet" network
   And I mine some blocks into my wallet
 
 #Scenario:  Test File send methods
@@ -42,9 +42,9 @@ Background: Defining settings
 
 Scenario:  Test Self send methods
   Given I have a wallet with coins
-  When I send <1e-5> coins with Self method
+  When I send 0.001 coins with self method
   And I await the confirm transaction
-  Then I have 2 new transactions in outputs with <1e-5> coins
+  Then I have 2 new transactions in outputs with 0.001 coins sent
 
 #Scenario: User wants to multiply two numbers
 #    Given I have a chain

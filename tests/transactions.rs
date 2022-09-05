@@ -30,11 +30,19 @@ impl fmt::Debug for TransWorld {
 }
 
 fn new_child() -> Child {
-    Command::new("").spawn().expect("Failed on run a empty Child process")
+    //Command::new("").spawn().expect("Failed on run a empty Child process")
+    Command::new("echo")
+                .arg("")
+                .spawn()
+                .expect("Failed on run a empty Child process")
 }
 
 fn new_output() -> Output {
-    Command::new("").output().expect("Failed on run a empty Output process")
+    //Command::new("").output().expect("Failed on run a empty Output process")
+    Command::new("echo")
+                .arg("")
+                .output()
+                .expect("Failed on run a empty Output process")
 }
 
 impl std::default::Default for TransWorld {
@@ -79,18 +87,18 @@ impl World for TransWorld {
         Ok(Self::default())
     }
 }
-
+//Given The epic-server binary is at /home/ba/Desktop/EpicV3/epic/target/release/epic
 #[given(expr = "The {string} binary is at {string}")]
 fn set_binary(world: &mut TransWorld, epic_sys: String, path: String) {
     match epic_sys.as_str() {
-        "epic-server" => world.server_binary = path,
-        "epic-wallet" => world.wallet_binary = path,
-        "epic-miner" => world.miner_binary = path,
+        "epic-server" => {world.server_binary = path},
+        "epic-wallet" => {world.wallet_binary = path},
+        "epic-miner" => {world.miner_binary = path},
         _ => panic!("Invalid system of epic"),
-    }
+    };
 }
 
-#[given(expr = "I am using the {word} network")]
+#[given(expr = "I am using the {string} network")]
 fn using_network(world: &mut TransWorld, str_chain: String) {
 
     let chain_t = str_to_chain_type(&str_chain);

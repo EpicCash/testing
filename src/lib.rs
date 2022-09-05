@@ -25,10 +25,10 @@ pub const TEST_API_SECRET_FILE_NAME: &'static str = ".api_secret";
 
 // Force the code to await for secs seconds, 
 pub fn wait_for(secs: u64) {
-    println!("BEFORE SLEEP == {} seconds", secs);
+    //println!("BEFORE SLEEP == {} seconds", secs);
     let duration = Duration::from_secs(secs);
     sleep(duration);
-    println!("AFTER SLEEP == {} seconds", secs);
+    //println!("AFTER SLEEP == {} seconds", secs);
 }
 
 // ChainType to str shortname
@@ -40,9 +40,9 @@ pub fn chain_type_to_str(chain_type: ChainTypes) -> String {
 pub fn str_to_chain_type(shortname: &str) -> ChainTypes {
     match shortname {
         "auto" => ChainTypes::AutomatedTesting,
-        "user" => ChainTypes::UserTesting,
-        "floo" => ChainTypes::Floonet,
-        "main" => ChainTypes::Mainnet,
+        "user" | "usernet" => ChainTypes::UserTesting,
+        "floo" | "floonet" => ChainTypes::Floonet,
+        "main" | "mainnet" => ChainTypes::Mainnet,
         _ => panic!("Specified network does not exist!")
     }
 }
