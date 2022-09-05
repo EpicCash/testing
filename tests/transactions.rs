@@ -1,7 +1,7 @@
 use std::{fmt, process::Output};
 use std::process::Child;
 use async_trait::async_trait;
-use cucumber::{given, when, World, WorldInit};
+use cucumber::{given, when, then, World, WorldInit};
 use std::convert::Infallible;
 use std::process::Command;
 
@@ -15,6 +15,7 @@ use testing::{
             spawn_miner, spawn_wallet_listen,
             get_passphrase,
             send_coins_smallest,
+            confirm_transaction,
             };
 
 // Epic Server
@@ -150,6 +151,17 @@ fn send_coins(world: &mut TransWorld, amount: String, method: String) {
 
 }
 
+#[then(expr = "I await the confirm transaction")]
+fn await_finalization(world: &mut TransWorld) {
+    confirm_transaction(&world.chain_type, &world.wallet_binary, &world.password)
+}
+
+#[then(expr = "I kill all running epic systems")]
+fn kill_all_childs(world: &mut TransWorld) {
+    world.miner.kill().expect("Miner wasn't running");
+    world.wallet.kill().expect("Wallet wasn't running");
+    world.server.kill().expect("Server wasn't running");
+}
 
 #[tokio::main]
 async fn main() {

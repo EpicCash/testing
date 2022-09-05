@@ -46,6 +46,9 @@ Scenario:  Test Self send methods
   And I await the confirm transaction
   Then I have 2 new transactions in outputs with 0.001 coins sent
 
+Scenario: Finish all systems
+  Then I kill all running epic systems
+
 #Scenario: User wants to multiply two numbers
 #    Given I have a chain
     #Given the numbers "2" and "3"

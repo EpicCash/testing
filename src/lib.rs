@@ -3,9 +3,9 @@ use std::path::PathBuf;
 use std::net::SocketAddr;
 use dirs::home_dir;
 use log::Level;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use std::thread::sleep;
-use std::fs::remove_dir_all;
+//use std::fs::remove_dir_all;
 
 // Epic Server
 use epic_core::global::ChainTypes;
@@ -190,9 +190,9 @@ pub fn create_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str)
     wallet_data_path.push("wallet_data");
 
     // if wallet_data exist -> remove
-    if wallet_data_path.exists() {
-        remove_dir_all(wallet_data_path).expect("Failed on remove old wallet_data");
-    }
+    //if wallet_data_path.exists() {
+    //    remove_dir_all(wallet_data_path).expect("Failed on remove old wallet_data");
+    //}
     
     let wallet = match chain_type {
         ChainTypes::UserTesting => {
@@ -299,6 +299,65 @@ pub fn send_coins_smallest(chain_type: &ChainTypes, binary_path: &String, method
     output
 }
 
-pub fn confirm_transaction() {
-    wait_for(300)
+// Run ./epic-wallet --network and take all values in info
+// return Vec<f32> with 7 values where the values are 
+// [chain_height, Confirmed Total, Immature Coinbase, 
+// Awaiting Confirmation, Awaiting Finalization, Locked by previous transaction, 
+// Currently Spendable]
+pub fn info_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) -> Vec<f32> {
+    let info = match chain_type {
+        ChainTypes::UserTesting => {
+            Command::new(binary_path)
+                    .args(["-p", password, "--usernet", "info"])
+                    .output().expect("Failed get info a wallet")
+        },
+        ChainTypes::Floonet => {
+            Command::new(binary_path)
+                    .args(["-p", password, "--floonet", "info"])
+                    .output().expect("Failed get info a wallet")
+        },
+        _ => {
+            Command::new(binary_path)
+                    .args(["-p", password, "info"])
+                    .output().expect("Failed get info a wallet")
+        },
+    };
+    // binary to string
+    let info_str = String::from_utf8_lossy(&info.stdout).into_owned();
+
+    // split by " " space
+    let info_split:Vec<&str> = info_str.split(' ').collect();
+    // split by \n; | and ' '
+    //let info_mult_split: Vec<&str> = info_str.split(&['\n','|',' ']).collect();
+
+    // f32, return only numbers between space ' '
+    let values: Vec<f32> = info_split
+                                .into_iter()
+                                .flat_map(|x| x.parse::<f32>())
+                                .collect();
+    values
+}
+
+// Check if locked coins == 0, await for 2 minutes to break
+pub fn confirm_transaction(chain_type: &ChainTypes, binary_path: &str, password: &str) {    
+    
+    // time dependence
+    let t0 = Instant::now();
+    let two_minute = Duration::from_secs(120);
+    
+    while t0.elapsed() < two_minute {
+        let values_info = info_wallet(chain_type, binary_path, password);
+        //if values_info[4] > 0.0 && values_info[5] > 0.0 {
+        if values_info[5] > 0.0 {
+            wait_for(5)
+        } else {
+            break
+        }
+    } 
+}
+
+// Run wallet_info and get chain_height from title
+pub fn get_chain_height(chain_type: &ChainTypes, binary_path: &str, password: &str) -> i32 {
+    let values_info = info_wallet(chain_type, binary_path, password);
+    values_info[0] as i32
 }
