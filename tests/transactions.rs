@@ -16,6 +16,10 @@ use testing::{
             get_passphrase,
             send_coins_smallest,
             confirm_transaction,
+            info_wallet,
+            new_child,
+            new_output,
+            get_number_transactions_txs,
             };
 
 // Epic Server
@@ -30,20 +34,10 @@ impl fmt::Debug for TransWorld {
     }
 }
 
-fn new_child() -> Child {
-    //Command::new("").spawn().expect("Failed on run a empty Child process")
-    Command::new("echo")
-                .arg("")
-                .spawn()
-                .expect("Failed on run a empty Child process")
-}
-
-fn new_output() -> Output {
-    //Command::new("").output().expect("Failed on run a empty Output process")
-    Command::new("echo")
-                .arg("")
-                .output()
-                .expect("Failed on run a empty Output process")
+impl fmt::Debug for WalletInformation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "chain_type :{:?}", self.sent_tx)
+    }
 }
 
 impl std::default::Default for TransWorld {
@@ -58,8 +52,25 @@ impl std::default::Default for TransWorld {
             server: new_child(),
             wallet: new_child(),
             miner: new_child(),
+            transactions: WalletInformation::default(),
 		}
 	}
+}
+
+impl std::default::Default for WalletInformation {
+	fn default() -> WalletInformation {
+		WalletInformation { 
+            sent_tx: 0 as u32, 
+            received_tx: 0 as u32,
+            confirmed_coinbase: 0 as u32,
+        }
+	}
+}
+
+struct WalletInformation {
+    pub sent_tx: u32,
+    pub received_tx: u32,
+    confirmed_coinbase: u32,
 }
 
 // These `Cat` definitions would normally be inside your project's code, 
@@ -75,6 +86,7 @@ struct TransWorld {
     pub server_binary: String,
     pub wallet_binary: String,
     pub miner_binary: String,
+    pub transactions: WalletInformation,
 }
 
 // `World` needs to be implemented, so Cucumber knows how to construct it
@@ -114,7 +126,7 @@ fn using_network(world: &mut TransWorld, str_chain: String) {
     world.server = spawn_network(&world.chain_type, world.server_binary.as_str());
 
     // run wallet and save on world
-    let mut wallet_init = create_wallet(&world.chain_type, world.wallet_binary.as_str(), world.password.as_str());
+    let wallet_init = create_wallet(&world.chain_type, world.wallet_binary.as_str(), world.password.as_str());
 
     // save passphrase on world
     world.passphrase = get_passphrase(&wallet_init);
@@ -138,6 +150,14 @@ fn send_coins(world: &mut TransWorld, amount: String, method: String) {
     
     // TODO destination (File and HTTP methods)
 
+    // Update transactions information in WalletInformation
+    let transaction_info = get_number_transactions_txs(&world.chain_type, &world.wallet_binary, &world.password);
+    let new_transactions_information = WalletInformation {
+                                                            sent_tx: transaction_info[0],
+                                                            received_tx: transaction_info[1],
+                                                            confirmed_coinbase: transaction_info[2]};
+    world.transactions = new_transactions_information; 
+    
     // If method is HTTP or file, send command needs a destination
     let send_output = match method.as_str() {
         "HTTP" | "file" => {
@@ -151,17 +171,44 @@ fn send_coins(world: &mut TransWorld, amount: String, method: String) {
 
 }
 
-#[then(expr = "I await the confirm transaction")]
+#[when(expr = "I await the confirm transaction")]
 fn await_finalization(world: &mut TransWorld) {
     confirm_transaction(&world.chain_type, &world.wallet_binary, &world.password)
 }
 
-#[then(expr = "I kill all running epic systems")]
+#[given(expr = "I have a wallet with coins")]
+fn check_coins_in_wallet(world: &mut TransWorld) {
+    let info = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
+
+    assert!(info.last().unwrap() > &0.0)
+}
+ 
+//I have 2 new transactions in txs
+#[then(expr = "I have {int} new transactions in txs")]
+fn check_new_transactions(world: &mut TransWorld, number_transactions: u32) {
+    // Update transactions information in WalletInformation
+    let transaction_info = get_number_transactions_txs(&world.chain_type, &world.wallet_binary, &world.password);
+    let new_info = WalletInformation {
+                                        sent_tx: transaction_info[0],
+                                        received_tx: transaction_info[1],
+                                        confirmed_coinbase: transaction_info[2]};
+    let int_number = number_transactions/2;
+    
+    // Sent tx
+    assert_eq!(world.transactions.sent_tx + int_number, new_info.sent_tx);
+
+    // Received tx
+    assert_eq!(world.transactions.received_tx + int_number, new_info.received_tx);
+}
+
+#[given(expr = "I kill all running epic systems")]
 fn kill_all_childs(world: &mut TransWorld) {
     world.miner.kill().expect("Miner wasn't running");
     world.wallet.kill().expect("Wallet wasn't running");
     world.server.kill().expect("Server wasn't running");
 }
+
+
 
 #[tokio::main]
 async fn main() {

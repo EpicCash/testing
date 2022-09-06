@@ -5,7 +5,7 @@ use dirs::home_dir;
 use log::Level;
 use std::time::{Duration, Instant};
 use std::thread::sleep;
-//use std::fs::remove_dir_all;
+use std::fs::remove_dir_all;
 
 // Epic Server
 use epic_core::global::ChainTypes;
@@ -135,8 +135,8 @@ pub fn change_server_toml_by_chain(toml_path: PathBuf ,chain_type: &ChainTypes) 
         ChainTypes::Mainnet => {},
         _ => panic!("Specified network does not exist!"),
     };
-
-    server_toml.write_to_file(toml_path.to_str().unwrap()).expect("Can't save custom toml file");
+    let mut server = server_toml.to_owned();
+    server.write_to_file(toml_path.to_str().unwrap()).expect("Can't save custom toml file");
 }
 
 
@@ -174,7 +174,7 @@ pub fn get_passphrase(output: &Output) -> String  {
 
     // Split the message into a vector
     let output_msg_vec = output_msg.split("\n").collect::<Vec<&str>>();
-    
+
     // If we got a error on init a new wallet, the vector will have only 4 element
     let result = match output_msg_vec.len() > 5 {
         true => output_msg_vec[5].to_owned(),
@@ -190,9 +190,9 @@ pub fn create_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str)
     wallet_data_path.push("wallet_data");
 
     // if wallet_data exist -> remove
-    //if wallet_data_path.exists() {
-    //    remove_dir_all(wallet_data_path).expect("Failed on remove old wallet_data");
-    //}
+    if wallet_data_path.exists() {
+        remove_dir_all(wallet_data_path).expect("Failed on remove old wallet_data");
+    }
     
     let wallet = match chain_type {
         ChainTypes::UserTesting => {
@@ -360,4 +360,60 @@ pub fn confirm_transaction(chain_type: &ChainTypes, binary_path: &str, password:
 pub fn get_chain_height(chain_type: &ChainTypes, binary_path: &str, password: &str) -> i32 {
     let values_info = info_wallet(chain_type, binary_path, password);
     values_info[0] as i32
+}
+
+// new_empty child command to build default structs
+pub fn new_child() -> Child {
+    //Command::new("").spawn().expect("Failed on run a empty Child process")
+    Command::new("echo")
+                .arg("")
+                .spawn()
+                .expect("Failed on run a empty Child process")
+}
+
+// new_empty output command to build default structs
+pub fn new_output() -> Output {
+    //Command::new("").output().expect("Failed on run a empty Output process")
+    Command::new("echo")
+                .arg("")
+                .output()
+                .expect("Failed on run a empty Output process")
+}
+
+// Run ./epic-wallet --network txs
+// return Vec<usize> with 3 values where the values are 
+// [Sent Tx, Received Tx, Confirmed Coinbase] 
+pub fn txs_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) -> String {
+    let txs = match chain_type {
+        ChainTypes::UserTesting => {
+            Command::new(binary_path)
+                    .args(["-p", password, "--usernet", "txs"])
+                    .output().expect("Failed get info a wallet")
+        },
+        ChainTypes::Floonet => {
+            Command::new(binary_path)
+                    .args(["-p", password, "--floonet", "txs"])
+                    .output().expect("Failed get info a wallet")
+        },
+        _ => {
+            Command::new(binary_path)
+                    .args(["-p", password, "txs"])
+                    .output().expect("Failed get info a wallet")
+        },
+    };
+    // binary to string
+    let txs_str = String::from_utf8_lossy(&txs.stdout).into_owned();
+
+    txs_str
+}
+
+pub fn get_number_transactions_txs(chain_type: &ChainTypes, binary_path: &str, password: &str) -> Vec<u32> {
+    let txs_str = txs_wallet(chain_type, binary_path, password);
+
+    // Count
+    let sent_receive_coinbase = vec![
+        txs_str.matches("Sent Tx").count() as u32,
+        txs_str.matches("Received Tx").count() as u32,
+        txs_str.matches("Confirmed").count() as u32 - 1]; // -1 because header of txs command have "Confirmed?"
+    sent_receive_coinbase
 }

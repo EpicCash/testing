@@ -1,9 +1,13 @@
 Feature: Test the methods of transactions and interactions between send, receive and finalize
 
+#"/home/ba/Desktop/EpicV3/epic/target/release/epic"
+#"/home/ba/Desktop/EpicV3/epic-wallet/target/release/epic-wallet"
+#"/home/ba/Desktop/epic-miner/target/debug/epic-miner"
+
 Background: Defining settings
-  Given The "epic-server" binary is at "/home/ba/Desktop/EpicV3/epic/target/release/epic"
-  And The "epic-wallet" binary is at "/home/ba/Desktop/EpicV3/epic-wallet/target/release/epic-wallet"
-  And The "epic-miner" binary is at "/home/ba/Desktop/epic-miner/target/debug/epic-miner"
+  Given The "epic-server" binary is at "C:\\Users\\T-Gamer\\Desktop\\Brick\\EpicCash\\epic\\target\\release\\epic.exe" 
+  And The "epic-wallet" binary is at "C:\\Users\\T-Gamer\\Desktop\\Brick\\EpicCash\\epic-wallet\\target\\release\\epic-wallet.exe" 
+  And The "epic-miner" binary is at "C:\\Users\\T-Gamer\\Desktop\\Brick\\EpicCash\\epic-miner\\epic-miner.exe" 
   And I am using the "usernet" network
   And I mine some blocks into my wallet
 
@@ -44,10 +48,10 @@ Scenario:  Test Self send methods
   Given I have a wallet with coins
   When I send 0.001 coins with self method
   And I await the confirm transaction
-  Then I have 2 new transactions in outputs with 0.001 coins sent
+  Then I have 2 new transactions in txs
 
 Scenario: Finish all systems
-  Then I kill all running epic systems
+  Given I kill all running epic systems
 
 #Scenario: User wants to multiply two numbers
 #    Given I have a chain
