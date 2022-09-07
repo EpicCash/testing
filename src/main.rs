@@ -6,7 +6,7 @@ use std::env;
 
 // Testing
 use testing::{spawn_network, wait_for, spawn_wallet_listen, create_wallet, send_coins_smallest,
-    spawn_miner, txs_wallet, get_number_transactions_txs};
+    spawn_miner, txs_wallet, get_number_transactions_txs, info_wallet};
 use testing::get_test_configuration;
 
 
@@ -24,45 +24,6 @@ use epic_config::GlobalConfig;
 //    pub seeds: Option<Vec<PeerAddr, Global>>,
 //}
 
-
-// Run ./epic-wallet --network and take all values in info
-// return Vec<f32> with 7 values where the values are 
-// [chain_height, Confirmed Total, Immature Coinbase, 
-// Awaiting Confirmation, Awaiting Finalization, Locked by previous transaction, 
-// Currently Spendable]
-pub fn info_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) -> Vec<f32> {
-    let info = match chain_type {
-        ChainTypes::UserTesting => {
-            Command::new(binary_path)
-                    .args(["-p", password, "--usernet", "info"])
-                    .output().expect("Failed get info a wallet")
-        },
-        ChainTypes::Floonet => {
-            Command::new(binary_path)
-                    .args(["-p", password, "--floonet", "info"])
-                    .output().expect("Failed get info a wallet")
-        },
-        _ => {
-            Command::new(binary_path)
-                    .args(["-p", password, "info"])
-                    .output().expect("Failed get info a wallet")
-        },
-    };
-    // binary to string
-    let info_str = String::from_utf8_lossy(&info.stdout).into_owned();
-
-    // split by " " space
-    let info_split:Vec<&str> = info_str.split(' ').collect();
-    // split by \n; | and ' '
-    //let info_mult_split: Vec<&str> = info_str.split(&['\n','|',' ']).collect();
-
-    // f32, return only numbers between space ' '
-    let values: Vec<f32> = info_split
-                                .into_iter()
-                                .flat_map(|x| x.parse::<f32>())
-                                .collect();
-    values
-}
 
 #[allow(unused_variables)]
 fn main() {
@@ -95,6 +56,8 @@ fn main() {
     println!("====== {:?} SEND COINS {:?} ======", a, String::from_utf8_lossy(&a.stdout));
 
     let info = info_wallet(&chain_type, wallet_binary, password);
+
+    println!("INFO {:?}", info);
 
     let txs = get_number_transactions_txs(&chain_type, wallet_binary, password);
 

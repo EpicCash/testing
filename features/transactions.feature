@@ -4,7 +4,10 @@ Feature: Test the methods of transactions and interactions between send, receive
 #"/home/ba/Desktop/EpicV3/epic-wallet/target/release/epic-wallet"
 #"/home/ba/Desktop/epic-miner/target/debug/epic-miner"
 
-Background: Defining settings
+#Background: Defining settings
+
+# Need run first
+Scenario: Defining settings
   Given The "epic-server" binary is at "C:\\Users\\T-Gamer\\Desktop\\Brick\\EpicCash\\epic\\target\\release\\epic.exe" 
   And The "epic-wallet" binary is at "C:\\Users\\T-Gamer\\Desktop\\Brick\\EpicCash\\epic-wallet\\target\\release\\epic-wallet.exe" 
   And The "epic-miner" binary is at "C:\\Users\\T-Gamer\\Desktop\\Brick\\EpicCash\\epic-miner\\epic-miner.exe" 

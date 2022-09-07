@@ -122,12 +122,13 @@ fn using_network(world: &mut TransWorld, str_chain: String) {
     // Wait the epic-servet.toml work
     wait_for(5);
 
-    // run server and save on world
-    world.server = spawn_network(&world.chain_type, world.server_binary.as_str());
-
+    // NEED CREATE WALLET BEFORE SPAWN SERVER, Unable to delete folder if server is on
     // run wallet and save on world
     let wallet_init = create_wallet(&world.chain_type, world.wallet_binary.as_str(), world.password.as_str());
 
+    // run server and save on world
+    world.server = spawn_network(&world.chain_type, world.server_binary.as_str());
+    
     // save passphrase on world
     world.passphrase = get_passphrase(&wallet_init);
 
