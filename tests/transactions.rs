@@ -1,5 +1,5 @@
-use std::fmt;
-use std::process::Child;
+//use std::fmt;
+use std::{process::Child, fs::remove_file};
 use async_trait::async_trait;
 use cucumber::{given, when, then, World, WorldInit};
 use std::convert::Infallible;
@@ -18,9 +18,12 @@ use testing::{
             confirm_transaction,
             info_wallet,
             new_child,
-            new_output,
+            //new_output,
             get_number_transactions_txs,
             get_http_wallet,
+            receive_finalize_coins,
+            generate_file_name,
+            generate_response_file_name,
             };
 
 // Epic Server
@@ -64,6 +67,8 @@ impl std::default::Default for WalletInformation {
             sent_tx: 0 as u32, 
             received_tx: 0 as u32,
             confirmed_coinbase: 0 as u32,
+            sent_path: String::new(),
+            receive_path: String::new(),
         }
 	}
 }
@@ -72,7 +77,9 @@ impl std::default::Default for WalletInformation {
 pub struct WalletInformation {
     pub sent_tx: u32,
     pub received_tx: u32,
-    confirmed_coinbase: u32,
+    pub confirmed_coinbase: u32,
+    pub sent_path: String,
+    pub receive_path: String,
 }
 
 // These `Cat` definitions would normally be inside your project's code, 
@@ -181,25 +188,48 @@ fn send_coins(world: &mut TransWorld, amount: String, method: String) {
     let new_transactions_information = WalletInformation {
                                                             sent_tx: transaction_info[0],
                                                             received_tx: transaction_info[1],
-                                                            confirmed_coinbase: transaction_info[2]};
+                                                            confirmed_coinbase: transaction_info[2],
+                                                            sent_path: String::new(),
+                                                            receive_path: String::new(),};
     world.transactions = new_transactions_information; 
     
     // If method is HTTP or file, send command needs a destination
     let send_output = match method.as_str() {
-        "HTTP" | "http" => {
+        "http" => {
             let dest = get_http_wallet();
-            println!("DEST {:?}", dest);
-            send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, dest)
+            send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, &dest)
         },
-        "self" => send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, String::new()),
+        "self" => send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, &String::new()),
+        "emoji" => {
+            let out_emoji = send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, &String::new());
+            let sent_str = String::from_utf8_lossy(&out_emoji.stdout).into_owned();
+            let sent_vec:Vec<&str> = sent_str.split('\n').collect();
+
+            // Save the emoji sent message
+            world.transactions.sent_path = String::from(sent_vec[0]);
+
+            out_emoji
+        },
+        "file" => {
+            let file_name = generate_file_name();
+            let response_file_name = generate_response_file_name(&file_name);
+            let out_file = send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, &file_name);
+            
+            // Save the send file name
+            world.transactions.sent_path = file_name;
+            // Save the response file name
+            world.transactions.receive_path = response_file_name;
+
+            out_file
+        },
+
         _ => panic!("Method not found!")
     };
-    println!("Out {:?} - {:?}", String::from_utf8_lossy(&send_output.stdout),String::from_utf8_lossy(&send_output.stderr));
     assert!(send_output.status.success())
 
 }
 
-#[when(expr = "I await the confirm transaction")]
+#[when(expr = "I await confirm the transaction")]
 fn await_finalization(world: &mut TransWorld) {
     confirm_transaction(&world.chain_type, &world.wallet_binary, &world.password)
 }
@@ -212,7 +242,9 @@ fn check_new_transactions(world: &mut TransWorld, number_transactions: u32) {
     let new_info = WalletInformation {
                                         sent_tx: transaction_info[0],
                                         received_tx: transaction_info[1],
-                                        confirmed_coinbase: transaction_info[2]};
+                                        confirmed_coinbase: transaction_info[2],
+                                        sent_path: String::new(),
+                                        receive_path: String::new(),};
     let int_number = number_transactions/2;
     
     // Sent tx
@@ -228,6 +260,51 @@ fn kill_all_childs(world: &mut TransWorld) {
     world.wallet.kill().expect("Wallet wasn't running");
     world.server.kill().expect("Server wasn't running");
 }
+
+#[when(expr = "I {word} the {word} transaction")]
+fn receive_step(world: &mut TransWorld, receive_finalize: String, method: String) {
+
+    let path_emoji_file = match receive_finalize.as_str() {
+        "receive" => &world.transactions.sent_path,
+        "finalize" => &world.transactions.receive_path,
+        _ => panic!("This operation isn't valid!"),
+    };
+
+    let posic_output = 4;
+
+    let output_receive_finalize = match method.as_str() {
+        "emoji" => {
+            let out_emoji = receive_finalize_coins(&world.chain_type, &world.wallet_binary, method, &world.password, &receive_finalize, path_emoji_file);
+            let out_str = String::from_utf8_lossy(&out_emoji.stdout).into_owned();
+            let out_vec:Vec<&str> = out_str.split('\n').collect();
+
+            // Save the emoji sent|receive message
+            if receive_finalize.as_str() == "receive" {
+                world.transactions.receive_path = String::from(out_vec[posic_output]);
+            }
+
+            out_emoji
+        },
+        "file" => {
+            let out_file = receive_finalize_coins(&world.chain_type, &world.wallet_binary, method, &world.password, &receive_finalize, path_emoji_file);
+            
+            if receive_finalize.as_str() == "finalize" {
+                remove_file(&world.transactions.sent_path).expect("Failed on delete sent file!");
+                remove_file(&world.transactions.receive_path).expect("Failed on delete receive file!")
+            }
+            
+            out_file
+        },
+        _ => panic!("Receive or Finalize method not found!")
+    };
+
+    assert!(output_receive_finalize.status.success())
+}
+ 
+
+
+//I finalize the emoji transaction
+
 
 //#[tokio::main]
 fn main() {

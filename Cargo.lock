@@ -3234,6 +3234,7 @@ name = "testing"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "chrono",
  "cucumber",
  "dirs",
  "epic_chain",

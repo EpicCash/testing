@@ -1,12 +1,13 @@
 // std
-//use std::{process::{Command, Child, Output}, array, str::Split, path::PathBuf};
+use std::{process::{Command, Child, Output}, array, str::Split, path::PathBuf};
 //use std::f32;
 //use std::env;
 //use std::fs::remove_dir_all;
 
 // Testing
 use testing::{spawn_network, wait_for, spawn_wallet_listen, create_wallet, send_coins_smallest,
-    spawn_miner, get_number_transactions_txs, info_wallet};
+    spawn_miner, get_number_transactions_txs, info_wallet, receive_finalize_coins,
+    generate_response_file_name, generate_file_name};
 use testing::get_test_configuration;
 
 
@@ -23,7 +24,6 @@ use epic_core::global::ChainTypes;
 //    pub seeding_type: Seeding,
 //    pub seeds: Option<Vec<PeerAddr, Global>>,
 //}
-
 
 #[allow(unused_variables)]
 fn main() {
@@ -51,22 +51,21 @@ fn main() {
     let mut miner = spawn_miner(miner_binary);
     wait_for(180);
 
-    let a = send_coins_smallest(&chain_type, &wallet_binary.to_string(), "self".to_string(), &"1".to_string(), String::from("1"), String::new());
-    
-    println!("====== {:?} SEND COINS {:?} ======", a, String::from_utf8_lossy(&a.stdout));
+    let file_name = generate_file_name();
+    let response_file_name = generate_response_file_name(&file_name);
 
-    let info = info_wallet(&chain_type, wallet_binary, password);
+    let a = send_coins_smallest(&chain_type, &wallet_binary.to_string(), "file".to_string(), &"1".to_string(), String::from("1"), &file_name);
 
-    println!("INFO {:?}", info);
+    let b = receive_finalize_coins(&chain_type, &wallet_binary.to_string(), "file".to_string(), &"1".to_string(), &"receive".to_string(),&file_name);
 
-    let txs = get_number_transactions_txs(&chain_type, wallet_binary, password);
+    let c = receive_finalize_coins(&chain_type, &wallet_binary.to_string(), "file".to_string(), &"1".to_string(), &"finalize".to_string(),&response_file_name);
 
-    let c = txs[0];
-    let d = txs[1];
-    let e = txs[2];
+    println!("====== SEND COINS {:?} ====== \n", a);
 
-    println!("\n TXS {:?} \n", txs);
-    println!("\n COUND {:?} =  {:?} = {:?} \n ", c, d, e);
+    println!("\n ====== RECEIVED COINS {:?} ====== \n", b);
+
+    println!("\n ====== FINALIZED COINS {:?} ====== \n", c);
+
     // let info_str = String::from_utf8_lossy(&info.stdout).into_owned();
     // let info_split = info_str.split(' ').collect::<Vec<&str>>();
     
@@ -83,11 +82,9 @@ fn main() {
     //                             // })
     //                             //.collect();
 
-    println!("MSG {:#?}", info);
     //println!("INFO {:#?} \n", info_split);
     // println!("INFO0 {:#?} \n", info_str.split(&['\n','|',' ']).collect::<Vec<&str>>());
     // println!("COLLECT {:#?} \n", values);
-
 
     
     listen.kill().expect("Failed on kill wallet");

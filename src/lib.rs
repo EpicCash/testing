@@ -6,6 +6,9 @@ use log::Level;
 use std::time::{Duration, Instant};
 use std::thread::sleep;
 use std::fs::remove_dir_all;
+use chrono::{DateTime, 
+            //Utc, 
+            Local};
 
 // Epic Server
 use epic_core::global::ChainTypes;
@@ -238,7 +241,7 @@ pub fn spawn_miner(binary_path: &str) -> Child {
 }
 
 // run the command ./epic-wallet --network -p <password> send -m <method> -s smallest <amount>
-pub fn send_coins_smallest(chain_type: &ChainTypes, binary_path: &String, method: String, password: &String, amount: String, destination: String) -> Output {
+pub fn send_coins_smallest(chain_type: &ChainTypes, binary_path: &String, method: String, password: &String, amount: String, destination: &String) -> Output {
     
     //let str_amount = f32::to_string(&amount);
 
@@ -250,8 +253,7 @@ pub fn send_coins_smallest(chain_type: &ChainTypes, binary_path: &String, method
     };
 
     let output = match destination.len() > 0 {
-        true => {
-            println!("Destination WORK");   
+        true => {  
             match chain_type {
                 ChainTypes::Mainnet => Command::new(&binary_path)
                                             .args(["-p", password.as_str() ,"send", "-d", destination.as_str(), "-m", method.as_str() ,"-s", "smallest", amount.as_str()])
@@ -426,4 +428,43 @@ pub fn get_http_wallet() -> String {
 
     let http_ip = format!("http://{}:{}", ip, port);
     http_ip
+}
+
+// run the command ./epic-wallet --network -p <password> <receive|finalize> -m <method> -i <emoji|file> 
+pub fn receive_finalize_coins(chain_type: &ChainTypes, binary_path: &String, method: String, password: &String, receive_finalize: &String ,destination: &str) -> Output {
+    let network = match chain_type {
+        ChainTypes::Floonet => "--floonet",
+        ChainTypes::UserTesting => "--usernet",
+        ChainTypes::Mainnet => "",
+        _ => panic!("Specified network does not exist!"),
+    };
+
+    let output = match chain_type {
+        ChainTypes::Mainnet => Command::new(&binary_path)
+                                    .args(["-p", password.as_str() , receive_finalize, "-m", method.as_str(), "-i", destination])
+                                    .output()
+                                    .expect("failed to execute process"),
+        _                   => Command::new(&binary_path)
+                                    .args(["-p", password.as_str(), network , receive_finalize, "-m", method.as_str(), "-i", destination])
+                                    .output()
+                                    .expect("failed to execute process"),
+    };
+    output
+}
+
+pub fn local_now_str() -> String {
+    let now: DateTime<Local> = Local::now();
+    let now_string = format!("{}", now.format("%Y-%m-%d_%H-%M-%S"));
+    now_string
+}
+
+pub fn generate_file_name() -> String {
+    let name = local_now_str();
+    let sent_file_name = format!("{}.txt", name);
+    sent_file_name
+}
+
+pub fn generate_response_file_name(sent_file_name: &String) -> String {
+    let response_file_name = format!("{}.response", sent_file_name);
+    response_file_name
 }
