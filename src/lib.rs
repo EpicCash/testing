@@ -25,10 +25,8 @@ pub const TEST_API_SECRET_FILE_NAME: &'static str = ".api_secret";
 
 // Force the code to await for secs seconds, 
 pub fn wait_for(secs: u64) {
-    //println!("BEFORE SLEEP == {} seconds", secs);
     let duration = Duration::from_secs(secs);
     sleep(duration);
-    //println!("AFTER SLEEP == {} seconds", secs);
 }
 
 // ChainType to str shortname
@@ -253,9 +251,10 @@ pub fn send_coins_smallest(chain_type: &ChainTypes, binary_path: &String, method
 
     let output = match destination.len() > 0 {
         true => {
+            println!("Destination WORK");   
             match chain_type {
                 ChainTypes::Mainnet => Command::new(&binary_path)
-                                            .args(["-p", password.as_str() ,"send", "-m", method.as_str(), "-d", destination.as_str() ,"-s", "smallest", amount.as_str()])
+                                            .args(["-p", password.as_str() ,"send", "-d", destination.as_str(), "-m", method.as_str() ,"-s", "smallest", amount.as_str()])
                                             .output()
                                             .expect("failed to execute process"),
 
@@ -388,17 +387,17 @@ pub fn txs_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) ->
         ChainTypes::UserTesting => {
             Command::new(binary_path)
                     .args(["-p", password, "--usernet", "txs"])
-                    .output().expect("Failed get info a wallet")
+                    .output().expect("Failed get txs info a wallet")
         },
         ChainTypes::Floonet => {
             Command::new(binary_path)
                     .args(["-p", password, "--floonet", "txs"])
-                    .output().expect("Failed get info a wallet")
+                    .output().expect("Failed get txs info a wallet")
         },
         _ => {
             Command::new(binary_path)
                     .args(["-p", password, "txs"])
-                    .output().expect("Failed get info a wallet")
+                    .output().expect("Failed get txs info a wallet")
         },
     };
     // binary to string
@@ -416,4 +415,15 @@ pub fn get_number_transactions_txs(chain_type: &ChainTypes, binary_path: &str, p
         txs_str.matches("Received Tx").count() as u32,
         txs_str.matches("Confirmed").count() as u32 - 1]; // -1 because header of txs command have "Confirmed?"
     sent_receive_coinbase
+}
+
+pub fn get_http_wallet() -> String {
+    // TODO get from wallet toml (api_listen_interface = "127.0.0.1")
+    let ip = "127.0.0.1";
+
+    // TODO get from wallet toml (api_listen_port = 23415)
+    let port = "23415";
+
+    let http_ip = format!("http://{}:{}", ip, port);
+    http_ip
 }

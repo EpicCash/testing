@@ -1,9 +1,9 @@
-use std::{fmt, process::Output};
+use std::fmt;
 use std::process::Child;
 use async_trait::async_trait;
 use cucumber::{given, when, then, World, WorldInit};
 use std::convert::Infallible;
-use std::process::Command;
+//use std::process::{Command, Output};
 
 //Testing
 use testing::{
@@ -20,6 +20,7 @@ use testing::{
             new_child,
             new_output,
             get_number_transactions_txs,
+            get_http_wallet,
             };
 
 // Epic Server
@@ -28,17 +29,17 @@ use epic_core::global::ChainTypes;
 //Epic Wallet
 //use epic_wallet_config::config::initial_setup_wallet;
 
-impl fmt::Debug for TransWorld {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "chain_type :{:?}", self.chain_type)
-    }
-}
+//impl fmt::Debug for TransWorld {
+//    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//        write!(f, "chain_type :{:?}", self.wallet_binary)
+//    }
+//}
 
-impl fmt::Debug for WalletInformation {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "chain_type :{:?}", self.sent_tx)
-    }
-}
+//impl fmt::Debug for WalletInformation {
+//    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//        write!(f, "chain_type :{:?}", self.sent_tx)
+//    }
+//}
 
 impl std::default::Default for TransWorld {
 	fn default() -> TransWorld {
@@ -67,7 +68,8 @@ impl std::default::Default for WalletInformation {
 	}
 }
 
-struct WalletInformation {
+#[derive(Debug)]
+pub struct WalletInformation {
     pub sent_tx: u32,
     pub received_tx: u32,
     confirmed_coinbase: u32,
@@ -75,8 +77,8 @@ struct WalletInformation {
 
 // These `Cat` definitions would normally be inside your project's code, 
 // not test code, but we create them here for the show case.
-#[derive(WorldInit)]
-struct TransWorld {
+#[derive(Debug, WorldInit)]
+pub struct TransWorld {
     pub chain_type: ChainTypes,
     pub server: Child,
     pub wallet: Child,
@@ -97,7 +99,19 @@ impl World for TransWorld {
     type Error = Infallible;
 
     async fn new() -> Result<Self, Infallible> {
-        Ok(Self::default())
+        //Ok(Self::default())
+        Ok(Self {
+            chain_type: ChainTypes::UserTesting,
+            password: String::from("1"),
+            passphrase: String::new(),
+            server_binary: String::new(),
+            wallet_binary: String::new(),
+            miner_binary: String::new(),
+            server: new_child(),
+            wallet: new_child(),
+            miner: new_child(),
+            transactions: WalletInformation::default(),
+		})
     }
 }
 //Given The epic-server binary is at /home/ba/Desktop/EpicV3/epic/target/release/epic
@@ -140,15 +154,26 @@ fn using_network(world: &mut TransWorld, str_chain: String) {
 }
 
 #[given("I mine some blocks into my wallet")]
-fn mine_some_coins(_world: &mut TransWorld) {
-    // Wait for 5~10 blocks
-    wait_for(180);
+fn mine_some_coins(world: &mut TransWorld) {
+    // TODO - Wait for 5~10 blocks
+    let mut info = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
+    let mut current_spendable = info.last().expect("Can't get the current spendable!");
+    while current_spendable == &0.0 {
+        wait_for(30);
+        info = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
+        current_spendable = info.last().expect("Can't get the current spendable!");
+    }
+}
+
+#[given(expr = "I have a wallet with coins")]
+fn check_coins_in_wallet(world: &mut TransWorld) {
+    let info = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
+    let current_spendable = info.last().expect("Can't get the current spendable!");
+    assert!(current_spendable > &0.0)
 }
 
 #[when(expr = "I send {word} coins with {word} method")]
 fn send_coins(world: &mut TransWorld, amount: String, method: String) {
-    // TODO if wallet have > 0 coins
-    
     // TODO destination (File and HTTP methods)
 
     // Update transactions information in WalletInformation
@@ -161,13 +186,15 @@ fn send_coins(world: &mut TransWorld, amount: String, method: String) {
     
     // If method is HTTP or file, send command needs a destination
     let send_output = match method.as_str() {
-        "HTTP" | "file" => {
-            panic!("Destionation not implemented yet");
-            new_output()
+        "HTTP" | "http" => {
+            let dest = get_http_wallet();
+            println!("DEST {:?}", dest);
+            send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, dest)
         },
-        _ => send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, String::new())
+        "self" => send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, String::new()),
+        _ => panic!("Method not found!")
     };
-    
+    println!("Out {:?} - {:?}", String::from_utf8_lossy(&send_output.stdout),String::from_utf8_lossy(&send_output.stderr));
     assert!(send_output.status.success())
 
 }
@@ -175,13 +202,6 @@ fn send_coins(world: &mut TransWorld, amount: String, method: String) {
 #[when(expr = "I await the confirm transaction")]
 fn await_finalization(world: &mut TransWorld) {
     confirm_transaction(&world.chain_type, &world.wallet_binary, &world.password)
-}
-
-#[given(expr = "I have a wallet with coins")]
-fn check_coins_in_wallet(world: &mut TransWorld) {
-    let info = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
-
-    assert!(info.last().unwrap() > &0.0)
 }
  
 //I have 2 new transactions in txs
@@ -202,16 +222,15 @@ fn check_new_transactions(world: &mut TransWorld, number_transactions: u32) {
     assert_eq!(world.transactions.received_tx + int_number, new_info.received_tx);
 }
 
-#[given(expr = "I kill all running epic systems")]
+#[then(expr = "I kill all running epic systems")]
 fn kill_all_childs(world: &mut TransWorld) {
     world.miner.kill().expect("Miner wasn't running");
     world.wallet.kill().expect("Wallet wasn't running");
     world.server.kill().expect("Server wasn't running");
 }
 
-
-
-#[tokio::main]
-async fn main() {
-    TransWorld::run("./features/transactions.feature").await;
+//#[tokio::main]
+fn main() {
+    println!("Remember to close all running epic systems before running the test");
+    futures::executor::block_on(TransWorld::run("./features/transactions.feature"));
 }

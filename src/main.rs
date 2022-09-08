@@ -1,18 +1,18 @@
 // std
-use std::{process::{Command, Child, Output}, array, str::Split, path::PathBuf};
-use std::f32;
-use std::env;
+//use std::{process::{Command, Child, Output}, array, str::Split, path::PathBuf};
+//use std::f32;
+//use std::env;
 //use std::fs::remove_dir_all;
 
 // Testing
 use testing::{spawn_network, wait_for, spawn_wallet_listen, create_wallet, send_coins_smallest,
-    spawn_miner, txs_wallet, get_number_transactions_txs, info_wallet};
+    spawn_miner, get_number_transactions_txs, info_wallet};
 use testing::get_test_configuration;
 
 
 // Epir Server
 use epic_core::global::ChainTypes;
-use epic_config::GlobalConfig;
+//use epic_config::GlobalConfig;
 
 //#[derive(Serialize)]
 //struct Server_Toml {
