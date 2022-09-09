@@ -175,10 +175,10 @@ pub fn get_passphrase(output: &Output) -> String  {
 
     // Split the message into a vector
     let output_msg_vec = output_msg.split("\n").collect::<Vec<&str>>();
-
+    println!("OUT {:#?}", output_msg_vec);
     // If we got a error on init a new wallet, the vector will have only 4 element
     let result = match output_msg_vec.len() > 5 {
-        true => output_msg_vec[5].to_owned(),
+        true => output_msg_vec[4].to_owned(),
         false => panic!("Failed to get passphrase from wallet init!"),
     };
     result
@@ -468,3 +468,28 @@ pub fn generate_response_file_name(sent_file_name: &String) -> String {
     let response_file_name = format!("{}.response", sent_file_name);
     response_file_name
 }
+
+// pub fn recovery_wallet(binary_path: &String, password: &String, passphrase: &String) {
+    
+//     let out_recover = match chain_type {
+//         ChainTypes::UserTesting => {
+//             Command::new(binary_path)
+//                     .args(["-p", password, "--usernet", "init", "-r"])
+//                     .output().expect("Failed get txs info a wallet")
+//         },
+//         ChainTypes::Floonet => {
+//             Command::new(binary_path)
+//                     .args(["-p", password, "--floonet", "txs"])
+//                     .output().expect("Failed get txs info a wallet")
+//         },
+//         _ => {
+//             Command::new(binary_path)
+//                     .args(["-p", password, "txs"])
+//                     .output().expect("Failed get txs info a wallet")
+//         },
+//     };
+//     // binary to string
+//     let txs_str = String::from_utf8_lossy(&txs.stdout).into_owned();
+
+//     txs_str
+// }
