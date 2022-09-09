@@ -93,20 +93,22 @@ use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
 
-fn start_process(sender: Sender<String>, receiver: Receiver<String>, binary_path: &str ,input_args: [&str; 5]) {
+fn start_process(sender: Sender<String>, receiver: Receiver<String>, binary_path: &str ,input_args: [&str; 6]) {
     let child = Command::new(binary_path)
-        .args(input_args)
+        //.args(input_args)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()
         .expect("Failed to start process");
-
+    println!("OUT {:#?}", child);
     println!("Started process: {}", child.id());
 
     thread::spawn(move || {
         let mut f = BufReader::new(child.stdout.unwrap());
         let mut stdin = child.stdin.unwrap();
+        println!("f {:?} - stdin {:?}", f, stdin)
         for line in receiver {
+            println!("LINE {:?}", line.as_bytes());
             stdin.write_all(line.as_bytes()).unwrap();
             let mut buf = String::new();
             match f.read_line(&mut buf) {
@@ -137,9 +139,11 @@ fn main() {
 
     let chain_type = ChainTypes::UserTesting;
     let password = "1";
-    let input = ["-p", password, "--usernet", "init", "-r"];
-    let wallet_binary = "/home/ba/Desktop/EpicV3/epic-wallet/target/release/epic-wallet";
    
+    let wallet_binary = "/home/ba/Desktop/EpicV3/epic-wallet/target/release/epic-wallet";
+    let input = [wallet_binary,"-p", password, "--usernet", "init", "-r"];
+    let bb = format!("{} -p {} --usernet init -r", wallet_binary, password);
+    println!("{bb}");
     let created_wallet = create_wallet(&chain_type, wallet_binary, password);
     let pass = get_passphrase(&created_wallet);
 
@@ -150,7 +154,7 @@ fn main() {
     start_process(tx1, rx2, &wallet_binary,input);
 
     wait_for(3);
-    tx2.send(pass).unwrap();
+    tx2.send(String::from("AAAA")).unwrap();
     //start_command_thread(Mutex::new(tx2));
 
     for line in rx1 {
