@@ -1,9 +1,9 @@
 Feature: Verify the longevity of a wallet, checking information in the chain referring to my wallet
 
   Background: Defining settings
-    Given The "epic-server" binary is at "/home/ba/Desktop/EpicV3/epic/target/release/epic"
-    And The "epic-wallet" binary is at "/home/ba/Desktop/EpicV3/epic-wallet/target/release/epic-wallet"
-    And The "epic-miner" binary is at "/home/ba/Desktop/epic-miner/target/debug/epic-miner"
+    Given The "epic-server" binary is at "/home/jualns/Desktop/epic/target/release/epic"
+    And The "epic-wallet" binary is at "/home/jualns/Desktop/epic-wallet/target/release/epic-wallet"
+    And The "epic-miner" binary is at "/home/jualns/Desktop/epic-miner/target/debug/epic-miner"
     And I am using the "usernet" network
 
     @serial

@@ -178,15 +178,13 @@ pub fn get_passphrase(output: &Output) -> String  {
     println!("OUT {:#?}", output_msg_vec);
     // If we got a error on init a new wallet, the vector will have only 4 element
     let result = match output_msg_vec.len() > 5 {
-        true => output_msg_vec[4].to_owned(),
+        true => output_msg_vec[3].to_owned(),
         false => panic!("Failed to get passphrase from wallet init!"),
     };
     result
 } 
 
-// Run the init command, if the wallet_data exist -> delete and create a new one
-pub fn create_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) -> Output {
-    // .epic/user ; .epic/floo or .epic/main
+pub fn remove_wallet_path(chain_type: &ChainTypes) {
     let mut wallet_data_path = get_home_chain(chain_type); 
     wallet_data_path.push("wallet_data");
 
@@ -194,7 +192,13 @@ pub fn create_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str)
     if wallet_data_path.exists() {
         remove_dir_all(wallet_data_path).expect("Failed on remove old wallet_data");
     }
-    
+} 
+// Run the init command, if the wallet_data exist -> delete and create a new one
+pub fn create_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) -> Output {
+    // .epic/user ; .epic/floo or .epic/main
+    // if wallet_data exist -> remove
+    remove_wallet_path(chain_type);
+
     let wallet = match chain_type {
         ChainTypes::UserTesting => {
             Command::new(binary_path)

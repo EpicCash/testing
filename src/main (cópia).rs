@@ -161,37 +161,7 @@ fn show_entire_info(chain_type: &ChainTypes, binary_path: &str, password: &str) 
         let info_str = String::from_utf8_lossy(&info.stdout).into_owned();
 
         println!("\n ENTIRE INFO {:?} \n", info_str);
-}
-
-fn start_listener(sender: Sender<String>, binary_path: &str, password: &str) {
-    // let child = Command::new("ping")
-    //     .arg("google.com")
-    //     .stdout(Stdio::piped())
-    //     .spawn()
-    //     .expect("Failed to start ping process");
-    
-    let child = Command::new(binary_path)
-        .args(["--usernet", "info"])
-        .stdout(Stdio::piped())
-        .spawn()
-        .expect("Failed get info a wallet");
-    
-
-    println!("Started process: {}", child.id());
-
-    thread::spawn(move || {
-        let mut f = BufReader::new(child.stdout.unwrap());
-        loop {
-            let mut buf = String::new();
-            match f.read_line(&mut buf) {
-                Ok(_) => {
-                    sender.send(buf).unwrap();
-                }
-                Err(e) => println!("an error!: {:?}", e),
-            }
-        }
-    });
-}
+    }
 
 fn main() {
 
@@ -200,46 +170,43 @@ fn main() {
    
     let wallet_binary = "/home/jualns/Desktop/epic-wallet/target/release/epic-wallet";
 
+
     remove_wallet_path(&chain_type);
 
     let input = ["--usernet", "-p", password, "init", "-r"];
     let bb = format!("{} -p {} --usernet init -r", wallet_binary, password);
     println!("{bb}");
-    
-    //let created_wallet = create_wallet(&chain_type, wallet_binary, password);
-    
-    //println!("Created Wallet!");
-    
-    //let passphare = get_passphrase(&created_wallet);
-    //let pass = passphare.clone();
-    
-    //println!("PASSPHRASE: {passphare}");
+    let created_wallet = create_wallet(&chain_type, wallet_binary, password);
+    println!("Created Wallet!");
+    let passphare = get_passphrase(&created_wallet);
+    let pass = passphare.clone();
+    println!("PASSPHRASE: {passphare}");
 
-    let mut child = Command::new(wallet_binary)
-            .args(["--usernet", "init"])
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .spawn().expect("Failed on init a wallet");
 
-    //remove_wallet_path(&chain_type);
+    show_entire_info(&chain_type, wallet_binary, password);
+    remove_wallet_path(&chain_type);
 
-    println!("BEFORE SLEEP CHECK FOLDER");
+    println!("START");
+    let (tx1, rx1) = channel();
+    let (tx2, rx2) = channel();
+
+    start_process(tx1, rx2, &wallet_binary,input);
+
+    wait_for(3);
+
+    println!("BEFORE SEND");
+    tx2.send(passphare).unwrap();
+    println!("AFTER SEND");
+    
+    show_entire_info(&chain_type, wallet_binary, password);
+    
+    start_command_thread(Mutex::new(tx2), pass);
     wait_for(5);
-    println!("AFTER SLEEP");
-    
-    // let child = Command::new(wallet_binary)
-    //     .args(input)
-    //     .stdin(Stdio::piped())
-    //     .stdout(Stdio::piped())
-    //     .spawn()
-    //     .expect("Failed to start process");
-    println!("OUT {:#?}", child);
-    println!("Started process: {}", child.id());
-   
-    let mut stdin = child.stdin.as_ref().unwrap();
-    stdin.write_all(password.as_bytes()).unwrap();
-    println!("SENDED ");
-    
-    child.kill();
-    println!("Done!");
+
+
+    for line in rx1.recv() {
+        println!("Got this back: -- {} --", line);
+    }
+
+    println!("DONE!")
 }
