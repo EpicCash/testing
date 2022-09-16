@@ -175,10 +175,13 @@ fn main() {
     childrens.wallet = spawn_wallet_listen(&chain_type, wallet_binary.as_str(), password.as_str());
     // Run the miner
     childrens.miner = spawn_miner(&miner_binary);
+    
+    // wait for 30 secs to miner start
+    wait_for(30);
 
     let mut handles_vec = Vec::new();
 
-    for _ in 0..4 {
+    for _ in 0..1 {
         let method_to_sent = Arc::clone(&method_to_send);
         let pass = Arc::clone(&password);
         let chain_t = Arc::clone(&chain_type);
@@ -191,18 +194,18 @@ fn main() {
             // prepare the pack of transactions
             let mut now = time::Instant::now();
             let mut pack_transactions = PackTransaction {
-                number_transactions: 5,
+                number_transactions: 100,
                 duration_time: Vec::new(), //vec![now.elapsed(); 1],
-                vec_amount: generate_vec_to_sent(0, 100, 5)//Vec::new(), //vec!["1.0".to_string()],
+                vec_amount: generate_vec_to_sent(0, 1000, 100)//Vec::new(), //vec!["1.0".to_string()],
             };
             //pack_transactions.duration_time.push(now.elapsed());
             //pack_transactions.vec_amount.push("1.0".to_string());
     
             // check if have coins
-            let mut coins_in_wallet = have_coins_in_wallet(&chain_t, &wallet_bin, &pass, &4.0);
+            let mut coins_in_wallet = have_coins_in_wallet(&chain_t, &wallet_bin, &pass, &2.0);
             while !coins_in_wallet {
                 wait_for(5);
-                coins_in_wallet = have_coins_in_wallet(&chain_t, &wallet_bin, &pass, &4.0);
+                coins_in_wallet = have_coins_in_wallet(&chain_t, &wallet_bin, &pass, &2.0);
             }
 
             let mut amount: String = pack_transactions.vec_amount.first().expect("Can't have amount to send").to_string();
@@ -210,10 +213,10 @@ fn main() {
                 amount = pack_transactions.vec_amount[t_k].to_string();
                 println!("-- HERE  amount: {:?} --", &amount);
                 // check if have coins
-                coins_in_wallet = have_coins_in_wallet(&chain_t, &wallet_bin, &pass, &4.0);
+                coins_in_wallet = have_coins_in_wallet(&chain_t, &wallet_bin, &pass, &2.0);
                 while !coins_in_wallet {
                     wait_for(10);
-                    coins_in_wallet = have_coins_in_wallet(&chain_t, &wallet_bin, &pass, &4.0);
+                    coins_in_wallet = have_coins_in_wallet(&chain_t, &wallet_bin, &pass, &2.0);
                 }
                 now = time::Instant::now();
                 let out = send_coins_smallest(&chain_t, &wallet_bin, method_to_sent.to_string(), &pass, amount, &http_pa);
