@@ -8,7 +8,7 @@ use std::time::Duration;
 //use std::sync::mpsc;
 use std::process::Child;
 //use std::time::Instant;
-//use std::process::{Command, Output};
+use std::process::{Command, Output};
 
 //Testing
 use testing::{
@@ -114,11 +114,13 @@ pub struct PackTransaction {
 /// 
 /// 
 
-fn have_coins_in_wallet(chain_type: &ChainTypes, wallet_binary: &String, password: &String, multiple: &f32) -> bool {
-    let comparative_value: &f32 = &15.0;
-    let info = info_wallet(chain_type, wallet_binary, password);
-    let current_spendable = info.last().expect("Can't get the current spendable!");
-    current_spendable > &(comparative_value*multiple)
+fn have_coins_in_wallet(_chain_type: &ChainTypes, _wallet_binary: &String, _password: &String, _multiple: &f32) -> bool {
+    // let comparative_value: &f32 = &15.0;
+    // let info = info_wallet(chain_type, wallet_binary, password);
+    // let current_spendable = info.last().expect("Can't get the current spendable!");
+    // current_spendable > &(comparative_value*multiple)
+    wait_for(10);
+    true
 }
 
 fn generate_vec_to_sent(min_include: i32, max_exclude: i32, number_elements: i32) -> Vec<String> {
@@ -135,6 +137,22 @@ fn save_transaction(Pack: PackTransaction, name_file: String) {
     file.write_all(text.as_bytes()).expect("Failed on write the transaction file");
 }
 
+fn save_data(pos_name: String) {
+    let wallet_name = format!("/home/ubuntu/.epic/user/wallet_data_{}", pos_name);
+    let chain_name = format!("/home/ubuntu/.epic/user/chain_data_{}", pos_name);
+
+    let chain_cop = Command::new("cp")
+                    .args(["-r","/home/ubuntu/.epic/user/chain_data", &chain_name])
+                    .output()
+                    .expect("Failed on copy chain_data");
+
+    let wallet_cop = Command::new("cp")
+                    .args(["-r","/home/ubuntu/.epic/user/wallet_data", &wallet_name])
+                    .output()
+                    .expect("Failed on copy wallet_data");
+    println!("WALL {:?} -- name {:?}", wallet_cop, wallet_name);
+}
+
 //#[tokio::main]
 fn main() {
     let method_send = String::from("http");
@@ -146,9 +164,9 @@ fn main() {
     //// Init the variables 
     let password = Arc::new(String::from("1"));
     let chain_type = Arc::new(ChainTypes::UserTesting);
-    let server_binary = Arc::new(String::from("/home/jualns/Desktop/epic/target/release/epic"));
-    let wallet_binary = Arc::new(String::from("/home/jualns/Desktop/epic-wallet/target/release/epic-wallet"));
-    let miner_binary = Arc::new(String::from("/home/jualns/Desktop/epic-miner/target/debug/epic-miner"));
+    let server_binary = Arc::new(String::from("/home/ubuntu/testing/binaries/epic"));
+    let wallet_binary = Arc::new(String::from("/home/ubuntu/testing/binaries/epiccash_E3_wallet_ubuntu/epic-wallet"));
+    let miner_binary = Arc::new(String::from("/home/ubuntu/testing/binaries/epic-miner"));
     let http_path =  Arc::new(get_http_wallet());
 
 
@@ -177,7 +195,9 @@ fn main() {
     childrens.miner = spawn_miner(&miner_binary);
     
     // wait for 30 secs to miner start
-    wait_for(30);
+    println!("BEFORE SLEEP!");
+    wait_for(60);
+    println!("AFTER SLEEP!");
 
     let mut handles_vec = Vec::new();
 
@@ -194,9 +214,9 @@ fn main() {
             // prepare the pack of transactions
             let mut now = time::Instant::now();
             let mut pack_transactions = PackTransaction {
-                number_transactions: 100,
+                number_transactions: 10,
                 duration_time: Vec::new(), //vec![now.elapsed(); 1],
-                vec_amount: generate_vec_to_sent(0, 1000, 100)//Vec::new(), //vec!["1.0".to_string()],
+                vec_amount: generate_vec_to_sent(0, 1000, 10)//Vec::new(), //vec!["1.0".to_string()],
             };
             //pack_transactions.duration_time.push(now.elapsed());
             //pack_transactions.vec_amount.push("1.0".to_string());
@@ -209,6 +229,7 @@ fn main() {
             }
 
             let mut amount: String = pack_transactions.vec_amount.first().expect("Can't have amount to send").to_string();
+            let k_param = 5;
             for t_k in 0..pack_transactions.number_transactions as usize {
                 amount = pack_transactions.vec_amount[t_k].to_string();
                 println!("-- HERE  amount: {:?} --", &amount);
@@ -223,7 +244,13 @@ fn main() {
                 println!("OUTPUT OF SENT {:?}", String::from_utf8_lossy(&out.stdout));
                 
                 pack_transactions.duration_time.push(now.elapsed());
-                
+
+                let tt_kk = t_k as f32;
+                let div = tt_kk/k_param as f32;
+                if div == div.floor() {
+                    save_data(div.to_string());
+                    println!("SAVE WALLET AND CHAIN DATA!")
+                }
             }
             save_transaction(pack_transactions, "transactions_test".to_string());
         });
