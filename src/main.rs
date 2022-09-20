@@ -138,16 +138,16 @@ fn save_transaction(Pack: PackTransaction, name_file: String) {
 }
 
 fn save_data(pos_name: String) {
-    let wallet_name = format!("/home/ubuntu/.epic/user/wallet_data_{}", pos_name);
-    let chain_name = format!("/home/ubuntu/.epic/user/chain_data_{}", pos_name);
+    let wallet_name = format!("/home/jualns/.epic/user/wallet_data_{}", pos_name);
+    let chain_name = format!("/home/jualns/.epic/user/chain_data_{}", pos_name);
 
     let chain_cop = Command::new("cp")
-                    .args(["-r","/home/ubuntu/.epic/user/chain_data", &chain_name])
+                    .args(["-r","/home/jualns/.epic/user/chain_data", &chain_name])
                     .output()
                     .expect("Failed on copy chain_data");
 
     let wallet_cop = Command::new("cp")
-                    .args(["-r","/home/ubuntu/.epic/user/wallet_data", &wallet_name])
+                    .args(["-r","/home/jualns/.epic/user/wallet_data", &wallet_name])
                     .output()
                     .expect("Failed on copy wallet_data");
     println!("WALL {:?} -- name {:?}", wallet_cop, wallet_name);
@@ -164,9 +164,9 @@ fn main() {
     //// Init the variables 
     let password = Arc::new(String::from("1"));
     let chain_type = Arc::new(ChainTypes::UserTesting);
-    let server_binary = Arc::new(String::from("/home/ubuntu/testing/binaries/epic"));
-    let wallet_binary = Arc::new(String::from("/home/ubuntu/testing/binaries/epiccash_E3_wallet_ubuntu/epic-wallet"));
-    let miner_binary = Arc::new(String::from("/home/ubuntu/testing/binaries/epic-miner"));
+    let server_binary = Arc::new(String::from("/home/jualns/Desktop/epic/target/release/epic"));
+    let wallet_binary = Arc::new(String::from("/home/jualns/Desktop/epic-wallet/target/release/epic-wallet"));
+    let miner_binary = Arc::new(String::from("/home/jualns/Desktop/epic-miner/target/debug/epic-miner"));
     let http_path =  Arc::new(get_http_wallet());
 
 
@@ -185,7 +185,7 @@ fn main() {
     // Wait the epic-servet.toml save
     wait_for(5);
     // run wallet and save on world
-    _ = create_wallet(&chain_type, wallet_binary.as_str(), password.as_str());
+    //_ = create_wallet(&chain_type, wallet_binary.as_str(), password.as_str());
     //big_wallet.http_path =  get_http_wallet();
     // run server and save on world
     childrens.server = spawn_network(&chain_type, server_binary.as_str());
