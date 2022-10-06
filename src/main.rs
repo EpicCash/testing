@@ -114,14 +114,14 @@ pub struct PackTransaction {
 /// 
 /// 
 
-fn have_coins_in_wallet(_chain_type: &ChainTypes, _wallet_binary: &String, _password: &String, _multiple: &f32) -> bool {
-    // let comparative_value: &f32 = &15.0;
-    // let info = info_wallet(chain_type, wallet_binary, password);
-    // let current_spendable = info.last().expect("Can't get the current spendable!");
-    // current_spendable > &(comparative_value*multiple)
-    wait_for(10);
-    true
-}
+// fn have_coins_in_wallet(_chain_type: &ChainTypes, _wallet_binary: &String, _password: &String, _multiple: &f32) -> bool {
+//     // let comparative_value: &f32 = &15.0;
+//     // let info = info_wallet(chain_type, wallet_binary, password);
+//     // let current_spendable = info.last().expect("Can't get the current spendable!");
+//     // current_spendable > &(comparative_value*multiple)
+//     wait_for(10);
+//     true
+// }
 
 fn generate_vec_to_sent(min_include: i32, max_exclude: i32, number_elements: i32) -> Vec<String> {
     let mut rng = rand::thread_rng();
@@ -166,7 +166,7 @@ fn main() {
     let chain_type = Arc::new(ChainTypes::UserTesting);
     let server_binary = Arc::new(String::from("/home/jualns/Desktop/epic/target/release/epic"));
     let wallet_binary = Arc::new(String::from("/home/jualns/Desktop/epic-wallet/target/release/epic-wallet"));
-    let miner_binary = Arc::new(String::from("/home/jualns/Desktop/epic-miner/target/debug/epic-miner"));
+    //let miner_binary = Arc::new(String::from("/home/jualns/Desktop/epic-miner/target/debug/epic-miner"));
     let http_path =  Arc::new(get_http_wallet());
 
 
@@ -192,12 +192,12 @@ fn main() {
     // save the wallet_listen process on world
     childrens.wallet = spawn_wallet_listen(&chain_type, wallet_binary.as_str(), password.as_str());
     // Run the miner
-    childrens.miner = spawn_miner(&miner_binary);
+    //childrens.miner = spawn_miner(&miner_binary);
     
     // wait for 30 secs to miner start
-    println!("BEFORE SLEEP!");
-    wait_for(60);
-    println!("AFTER SLEEP!");
+    //println!("BEFORE SLEEP!");
+    //wait_for(60);
+    //println!("AFTER SLEEP!");
 
     let mut handles_vec = Vec::new();
 
@@ -214,31 +214,18 @@ fn main() {
             // prepare the pack of transactions
             let mut now = time::Instant::now();
             let mut pack_transactions = PackTransaction {
-                number_transactions: 10,
+                number_transactions: 21,
                 duration_time: Vec::new(), //vec![now.elapsed(); 1],
-                vec_amount: generate_vec_to_sent(0, 1000, 10)//Vec::new(), //vec!["1.0".to_string()],
+                vec_amount: generate_vec_to_sent(0, 1000, 21)//Vec::new(), //vec!["1.0".to_string()],
             };
             //pack_transactions.duration_time.push(now.elapsed());
             //pack_transactions.vec_amount.push("1.0".to_string());
-    
-            // check if have coins
-            let mut coins_in_wallet = have_coins_in_wallet(&chain_t, &wallet_bin, &pass, &2.0);
-            while !coins_in_wallet {
-                wait_for(5);
-                coins_in_wallet = have_coins_in_wallet(&chain_t, &wallet_bin, &pass, &2.0);
-            }
 
             let mut amount: String = pack_transactions.vec_amount.first().expect("Can't have amount to send").to_string();
-            let k_param = 5;
+            let k_param = 100;
             for t_k in 0..pack_transactions.number_transactions as usize {
                 amount = pack_transactions.vec_amount[t_k].to_string();
                 println!("-- HERE  amount: {:?} --", &amount);
-                // check if have coins
-                coins_in_wallet = have_coins_in_wallet(&chain_t, &wallet_bin, &pass, &2.0);
-                while !coins_in_wallet {
-                    wait_for(10);
-                    coins_in_wallet = have_coins_in_wallet(&chain_t, &wallet_bin, &pass, &2.0);
-                }
                 now = time::Instant::now();
                 let out = send_coins_smallest(&chain_t, &wallet_bin, method_to_sent.to_string(), &pass, amount, &http_pa);
                 println!("OUTPUT OF SENT {:?}", String::from_utf8_lossy(&out.stdout));
@@ -252,7 +239,7 @@ fn main() {
                     println!("SAVE WALLET AND CHAIN DATA!")
                 }
             }
-            save_transaction(pack_transactions, "transactions_test".to_string());
+            save_transaction(pack_transactions, "transactions_test_single_thread".to_string());
         });
 
         handles_vec.push(handle);
@@ -267,7 +254,7 @@ fn main() {
     confirm_transaction(&chain_type, &wallet_binary, &password);
 
     //// Finish all systems
-    childrens.miner.kill().expect("Can't kill miner!");
+    //childrens.miner.kill().expect("Can't kill miner!");
     childrens.server.kill().expect("Can't kill server!");
     childrens.wallet.kill().expect("Can't kill wallet!");    
 }

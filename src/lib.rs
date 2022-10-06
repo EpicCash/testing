@@ -191,9 +191,9 @@ pub fn create_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str)
     wallet_data_path.push("wallet_data");
 
     // if wallet_data exist -> remove
-    if wallet_data_path.exists() {
-        remove_dir_all(wallet_data_path).expect("Failed on remove old wallet_data");
-    }
+    // if wallet_data_path.exists() {
+    //     remove_dir_all(wallet_data_path).expect("Failed on remove old wallet_data");
+    // }
     
     let wallet = match chain_type {
         ChainTypes::UserTesting => {
