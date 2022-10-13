@@ -9,6 +9,7 @@ use std::fs::remove_dir_all;
 use chrono::{DateTime, 
             //Utc, 
             Local};
+use rand::{self, distributions::Uniform, Rng};
 
 // Epic Server
 use epic_core::global::ChainTypes;
@@ -467,4 +468,12 @@ pub fn generate_file_name() -> String {
 pub fn generate_response_file_name(sent_file_name: &String) -> String {
     let response_file_name = format!("{}.response", sent_file_name);
     response_file_name
+}
+
+pub fn generate_vec_to_sent(min_include: i32, max_exclude: i32, number_elements: i32) -> Vec<String> {
+    let mut rng = rand::thread_rng();
+    let range = Uniform::new(min_include, max_exclude); // [min, max)
+
+    let vals: Vec<String> = (0..number_elements).map(|_| format!("0.{}", rng.sample(&range).to_string())).collect();
+    vals
 }
