@@ -196,7 +196,7 @@ fn send_coins(world: &mut TransWorld, amount: String, method: String) {
     // If method is HTTP or file, send command needs a destination
     let send_output = match method.as_str() {
         "http" => {
-            let dest = get_http_wallet();
+            let dest = get_http_wallet(&world.chain_type);
             send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, &dest)
         },
         "self" => send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, &String::new()),

@@ -3,8 +3,10 @@ use std::{process::Child, fs::remove_file};
 use async_trait::async_trait;
 use cucumber::{given, when, then, World, WorldInit};
 use std::convert::Infallible;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use std::fmt;
+use std::fs::File;
+use std::io::prelude::*;
 //use std::process::{Command, Output};
 
 //Testing
@@ -60,6 +62,8 @@ impl std::default::Default for TransWorld {
             wallet: new_child(),
             miner: new_child(),
             transactions: WalletInformation::default(),
+            dur_transactions: Vec::new(),
+            n_transactions: 1,
 		}
 	}
 }
@@ -85,7 +89,7 @@ pub struct WalletInformation {
     pub receive_path: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PackTransaction {
     pub number_transactions: i32,
     pub duration_time: Vec<Duration>,
@@ -106,6 +110,8 @@ pub struct TransWorld {
     pub wallet_binary: String,
     pub miner_binary: String,
     pub transactions: WalletInformation,
+    pub dur_transactions: Vec<Duration>,
+    pub n_transactions: i32,
 }
 
 // `World` needs to be implemented, so Cucumber knows how to construct it
@@ -128,6 +134,8 @@ impl World for TransWorld {
             wallet: new_child(),
             miner: new_child(),
             transactions: WalletInformation::default(),
+            dur_transactions: Vec::new(),
+            n_transactions: 1,
 		})
     }
 }
@@ -136,6 +144,12 @@ impl fmt::Display for PackTransaction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "number_transactions: {:?}\nduration_time: {:?}\nvec_amount: {:?})", self.number_transactions, self.duration_time, self.vec_amount)
     }
+}
+
+fn save_transaction(pack: PackTransaction, name_file: String) {
+    let mut file = File::create(format!("{}.txt", name_file)).expect("Failed on create a transaction file");
+    let text = format!("{}", pack);
+    file.write_all(text.as_bytes()).expect("Failed on write the transaction file");
 }
 
 //Given The epic-server binary is at /home/ba/Desktop/EpicV3/epic/target/release/epic
@@ -168,7 +182,7 @@ fn using_network(world: &mut TransWorld, str_chain: String) {
     world.server = spawn_network(&world.chain_type, world.server_binary.as_str());
     
     // save passphrase on world
-    world.passphrase = get_passphrase(&wallet_init);
+    //world.passphrase = get_passphrase(&wallet_init);
 
     // save the wallet_listen process on world
     world.wallet = spawn_wallet_listen(&world.chain_type, world.wallet_binary.as_str(), world.password.as_str());
@@ -196,57 +210,7 @@ fn check_coins_in_wallet(world: &mut TransWorld) {
     assert!(current_spendable > &0.0)
 }
 
-#[when(expr = "I send {word} coins with {word} method")]
-fn send_coins(world: &mut TransWorld, amount: String, method: String) {
-    // TODO destination (File and HTTP methods)
-
-    // Update transactions information in WalletInformation
-    let transaction_info = get_number_transactions_txs(&world.chain_type, &world.wallet_binary, &world.password);
-    let new_transactions_information = WalletInformation {
-                                                            sent_tx: transaction_info[0],
-                                                            received_tx: transaction_info[1],
-                                                            confirmed_coinbase: transaction_info[2],
-                                                            sent_path: String::new(),
-                                                            receive_path: String::new(),};
-    world.transactions = new_transactions_information; 
-    
-    // If method is HTTP or file, send command needs a destination
-    let send_output = match method.as_str() {
-        "http" => {
-            let dest = get_http_wallet();
-            send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, &dest)
-        },
-        "self" => send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, &String::new()),
-        "emoji" => {
-            let out_emoji = send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, &String::new());
-            let sent_str = String::from_utf8_lossy(&out_emoji.stdout).into_owned();
-            let sent_vec:Vec<&str> = sent_str.split('\n').collect();
-
-            // Save the emoji sent message
-            world.transactions.sent_path = String::from(sent_vec[0]);
-
-            out_emoji
-        },
-        "file" => {
-            let file_name = generate_file_name();
-            let response_file_name = generate_response_file_name(&file_name);
-            let out_file = send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, &file_name);
-            
-            // Save the send file name
-            world.transactions.sent_path = file_name;
-            // Save the response file name
-            world.transactions.receive_path = response_file_name;
-
-            out_file
-        },
-
-        _ => panic!("Method not found!")
-    };
-    assert!(send_output.status.success())
-
-}
-
-#[when(expr = "I await confirm the transaction")]
+#[then(expr = "I await confirm the transaction")]
 fn await_finalization(world: &mut TransWorld) {
     confirm_transaction(&world.chain_type, &world.wallet_binary, &world.password)
 }
@@ -320,7 +284,7 @@ fn receive_step(world: &mut TransWorld, receive_finalize: String, method: String
  
 #[when(expr = "I make a {int} transactions with {word} method")]
 fn send_n_coins(world: &mut TransWorld, num_transactions: i32, method: String) {
-    let pack_transaction = PackTransaction {
+    let mut pack_transaction = PackTransaction {
         number_transactions: num_transactions,
         duration_time: Vec::new(),
         vec_amount: generate_vec_to_sent(0, 1000, num_transactions)
@@ -335,50 +299,65 @@ fn send_n_coins(world: &mut TransWorld, num_transactions: i32, method: String) {
                                                             sent_path: String::new(),
                                                             receive_path: String::new(),};
     world.transactions = new_transactions_information; 
-    for k in 0..num_transactions {
+    let mut amount: String = pack_transaction.vec_amount.first().expect("Can't have amount to send").to_string();
+    let mmethod = method.clone();
+    for k in 0..num_transactions as usize {
+        amount = pack_transaction.vec_amount[k].to_string();
+        let now = Instant::now();
         // If method is HTTP or file, send command needs a destination
-        let send_output = match method.as_str() {
-            "http" => {
-                let dest = get_http_wallet();
-                send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, &dest)
-            },
-            "self" => send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, &String::new()),
-            "emoji" => {
-                let out_emoji = send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, &String::new());
-                let sent_str = String::from_utf8_lossy(&out_emoji.stdout).into_owned();
-                let sent_vec:Vec<&str> = sent_str.split('\n').collect();
 
-                // Save the emoji sent message
-                world.transactions.sent_path = String::from(sent_vec[0]);
-
-                out_emoji
-            },
-            "file" => {
-                let file_name = generate_file_name();
-                let response_file_name = generate_response_file_name(&file_name);
-                let out_file = send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, &file_name);
-                
-                // Save the send file name
-                world.transactions.sent_path = file_name;
-                // Save the response file name
-                world.transactions.receive_path = response_file_name;
-
-                out_file
-            },
-
-            _ => panic!("Method not found!")
-        };
-    
-    }
-    assert!(send_output.status.success())
-
+        let dest = get_http_wallet(&world.chain_type);
+        send_coins_smallest(&world.chain_type, &world.wallet_binary, mmethod.clone(), &world.password, amount, &dest);
+        pack_transaction.duration_time.push(now.elapsed());
+    };
+    //save_transaction(pack_transaction, "transactions_test".to_string());
+    world.dur_transactions = pack_transaction.duration_time;
+    world.n_transactions = num_transactions;
 }
 
-//I finalize the emoji transaction
+//The average transaction time is less than "1" second
+#[then(expr = "The average transaction time is less than {float} second")]
+fn average_transactions(world: &mut TransWorld, secs_compare: f32) {
+    let a = &world.dur_transactions;
+    let avg: f32;
+
+    { // calculate average
+        let mut sum: f32 = 0.0;
+        for x in a {
+            sum = sum + x.as_secs_f32();
+        }
+  
+        avg = sum as f32 / a.len() as f32;
+    }
+    println!("Average: {:?}", avg);
+    assert!(avg > secs_compare)
+}
+
+//All transactions work
+#[then(expr = "All transactions work")]
+fn transactions_work(world: &mut TransWorld) {
+    // Update transactions information in WalletInformation
+    let transaction_info = get_number_transactions_txs(&world.chain_type, &world.wallet_binary, &world.password);
+    
+    let new_info = WalletInformation {
+                                        sent_tx: transaction_info[0],
+                                        received_tx: transaction_info[1],
+                                        confirmed_coinbase: transaction_info[2],
+                                        sent_path: String::new(),
+                                        receive_path: String::new(),};
+    //let int_number = number_transactions/2;
+    
+    // Sent tx
+    assert_eq!(world.transactions.sent_tx + world.n_transactions as u32, new_info.sent_tx);
+
+    // Received tx
+    assert_eq!(world.transactions.received_tx + world.n_transactions as u32, new_info.received_tx);
+}
+
 
 
 //#[tokio::main]
 fn main() {
     println!("Remember to close all running epic systems before running the test");
-    futures::executor::block_on(TransWorld::run("./features/transactions.feature"));
+    futures::executor::block_on(TransWorld::run("./features/scalability.feature"));
 }

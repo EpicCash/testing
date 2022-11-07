@@ -29,6 +29,10 @@ harness = false
 name = "api"
 harness = false
 
+[[test]]
+name = "scalability"
+harness = false
+
 
 [dependencies]
 toml = "0.4"

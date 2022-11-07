@@ -420,12 +420,16 @@ pub fn get_number_transactions_txs(chain_type: &ChainTypes, binary_path: &str, p
     sent_receive_coinbase
 }
 
-pub fn get_http_wallet() -> String {
+pub fn get_http_wallet(chain_type: &ChainTypes) -> String {
     // TODO get from wallet toml (api_listen_interface = "127.0.0.1")
     let ip = "127.0.0.1";
 
     // TODO get from wallet toml (api_listen_port = 23415)
-    let port = "23415";
+    let port = match chain_type {
+        ChainTypes::Floonet => "13415",
+        _ => "23415",
+    };
+    //let port = "23415";
 
     let http_ip = format!("http://{}:{}", ip, port);
     http_ip
