@@ -140,17 +140,28 @@ fn start_child_system(world: &mut FlooWorld, enter_policy: String) {
 
 #[then(expr = "The chain is downloaded and synced")]
 fn check_chain_synced(world: &mut FlooWorld) {
-    // height from others peers
-    let msg_list_of_peers = get_list_peers(&world.chain_type, &world.server_binary);
-    let out_height = get_height_from_list_peers(&msg_list_of_peers);
-    println!("Check {:#?}", &out_height);
+    let mut chain_height_peers: i32 = 0; //peer_height
+    let mut chain_height_status: i32 = 1; // local_height
+    let mut num_checks: i32 = 0; // k interations
+    while chain_height_status != chain_height_peers {
+        // height from others peers
+        let msg_list_of_peers = get_list_peers(&world.chain_type, &world.server_binary);
+        let out_height = get_height_from_list_peers(&msg_list_of_peers);
 
-    // get max of height from othres peers
-    let chain_height_peers = get_chain_height_peers(out_height);
+        // get max of height from othres peers
+        chain_height_peers = get_chain_height_peers(out_height);
 
-    // height from local node
-    let msg_status = get_status(&world.chain_type, &world.server_binary);
-    let chain_height_status = get_height_from_status(&msg_status);
+        // height from local node
+        let msg_status = get_status(&world.chain_type, &world.server_binary);
+        chain_height_status = get_height_from_status(&msg_status);
+        if chain_height_status < chain_height_peers && num_checks < 10 {
+            wait_for(15);
+            num_checks += 1
+        } else {
+            break;
+        };
+    }
+    
     assert_eq!(chain_height_peers,chain_height_status, "\nWe are testing height by peers {} and local height {}", chain_height_peers,chain_height_status);
 }
 
