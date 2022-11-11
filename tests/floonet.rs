@@ -61,6 +61,7 @@ impl std::default::Default for FlooWorld {
             server: new_child(),
             wallet: new_child(),
             miner: new_child(),
+            initial_height: 0,
 		}
 	}
 }
@@ -77,6 +78,7 @@ pub struct FlooWorld {
     pub server_binary: String,
     pub wallet_binary: String,
     pub miner_binary: String,
+    pub initial_height: i32,
 }
 
 // `World` needs to be implemented, so Cucumber knows how to construct it
@@ -97,6 +99,7 @@ impl World for FlooWorld {
             server: new_child(),
             wallet: new_child(),
             miner: new_child(),
+            initial_height: 0,
 		})
     }
 }
@@ -174,7 +177,8 @@ fn check_connected_peers(world: &mut FlooWorld) {
     assert!(out_height.len() > 0)
 }
 
-#[when(expr = "I {string} the {string}")]
+// I start/stop the wallet/miner
+#[when(expr = "I {word} the {word}")]
 fn start_child_general(world: &mut FlooWorld, start_stop: String , epic_system: String) {
     match start_stop.as_str() {
         "start" => {
@@ -212,6 +216,25 @@ fn mine_some_coins(world: &mut FlooWorld) {
         current_spendable = info.last().expect("Can't get the current spendable!");
     }
 }
+
+#[given("I know the initial height of chain")]
+fn get_initial_height(world: &mut FlooWorld) {
+    // height from local node
+    let msg_status = get_status(&world.chain_type, &world.server_binary);
+    let chain_height_status = get_height_from_status(&msg_status);
+    
+    world.initial_height = chain_height_status;
+}
+
+#[then("The chain_height from peers is more than initial value")]
+fn compare_initial_height(world: &mut FlooWorld) {
+    // height from local node
+    let msg_status = get_status(&world.chain_type, &world.server_binary);
+    let chain_height_status = get_height_from_status(&msg_status);
+    
+    assert!(chain_height_status > world.initial_height)
+}
+
 
 #[given(expr = "I have a wallet with coins")]
 fn check_coins_in_wallet(world: &mut FlooWorld) {
