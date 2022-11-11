@@ -57,16 +57,16 @@ pub fn get_ip_new(ip_v4: &str) -> PeerAddr {
 
 
 // Spawn server process by chain type
-pub fn spawn_network(chain_type: &ChainTypes, binary_path: &str) -> Child {
+pub fn spawn_network(chain_type: &ChainTypes, binary_path: &str, policy: &str) -> Child {
     let output = match chain_type {
         ChainTypes::Floonet => Command::new(&binary_path)
                                 .arg("--floonet")
-                                .arg("--onlyrandomx")
+                                .arg(policy)
                                 .spawn()
                                 .expect("failed to execute process"),
         ChainTypes::UserTesting => Command::new(&binary_path)
                                 .arg("--usernet")
-                                .arg("--onlyrandomx")
+                                .arg(policy)
                                 .spawn()
                                 .expect("failed to execute process"),
         ChainTypes::Mainnet => Command::new(&binary_path)
@@ -423,12 +423,16 @@ pub fn get_number_transactions_txs(chain_type: &ChainTypes, binary_path: &str, p
     sent_receive_coinbase
 }
 
-pub fn get_http_wallet() -> String {
+pub fn get_http_wallet(chain_type: &ChainTypes) -> String {
     // TODO get from wallet toml (api_listen_interface = "127.0.0.1")
     let ip = "127.0.0.1";
 
     // TODO get from wallet toml (api_listen_port = 23415)
-    let port = "23415";
+    let port = match chain_type {
+        ChainTypes::Floonet => "13415",
+        _ => "23415",
+    };
+    //let port = "23415";
 
     let http_ip = format!("http://{}:{}", ip, port);
     http_ip
@@ -473,27 +477,80 @@ pub fn generate_response_file_name(sent_file_name: &String) -> String {
     response_file_name
 }
 
-// pub fn recovery_wallet(binary_path: &String, password: &String, passphrase: &String) {
-    
-//     let out_recover = match chain_type {
-//         ChainTypes::UserTesting => {
-//             Command::new(binary_path)
-//                     .args(["-p", password, "--usernet", "init", "-r"])
-//                     .output().expect("Failed get txs info a wallet")
-//         },
-//         ChainTypes::Floonet => {
-//             Command::new(binary_path)
-//                     .args(["-p", password, "--floonet", "txs"])
-//                     .output().expect("Failed get txs info a wallet")
-//         },
-//         _ => {
-//             Command::new(binary_path)
-//                     .args(["-p", password, "txs"])
-//                     .output().expect("Failed get txs info a wallet")
-//         },
-//     };
-//     // binary to string
-//     let txs_str = String::from_utf8_lossy(&txs.stdout).into_owned();
+// Code to return a vector of heights of all connected peers
+pub fn get_height_from_list_peers(output: &Output) -> Vec<i32>  {
+    // String of message
+    let output_msg = String::from_utf8_lossy(&output.stdout).into_owned();
 
-//     txs_str
-// }
+    // Split the message into a vector
+    let output_msg_vec = output_msg.split("\nHeight: ").collect::<Vec<&str>>();
+    let mut height_vec: Vec<i32> = Vec::new();
+    for element in output_msg_vec {
+        if element.contains("Total"){
+            let all_splits = element.split("\n").collect::<Vec<&str>>();
+            let b: i32 = all_splits[0].parse().unwrap();
+            height_vec.push(b);
+        }
+    }
+    //let height_vec = output_msg_vec[1].split("\n").collect::<Vec<&str>>;
+    height_vec
+} 
+
+// Code to return the output referring to the peers
+pub fn get_list_peers(chain_type: &ChainTypes, binary_path: &str) -> Output {
+    let list_peers = match chain_type {
+        ChainTypes::Floonet => {
+            Command::new(binary_path)
+                    .args(["--floonet", "client", "listconnectedpeers"])
+                    .output().expect("Failed on init a wallet")
+        },
+        _ => {
+            Command::new(binary_path)
+                    .args(["client", "listconnectedpeers"])
+                    .output().expect("Failed on init a wallet")
+        },
+    };
+    list_peers
+}
+
+// 
+pub fn get_chain_height_peers(vec_height: Vec<i32>) -> i32 {
+    let max_height = vec_height.iter().max();
+    max_height.unwrap().to_owned()
+}
+
+// 
+pub fn check_peers(vec_height: Vec<i32>) {
+    assert!(vec_height.len() > 0)
+}
+
+// 
+pub fn get_height_from_status(output: &Output) -> i32  {
+    // String of message
+    let output_msg = String::from_utf8_lossy(&output.stdout).into_owned();
+
+    // Split the message into a vector
+    let output_msg_vec = output_msg.split("\nChain height: ").collect::<Vec<&str>>();
+    let all_splits = output_msg_vec[1].split("\n").collect::<Vec<&str>>();
+    let height: i32 = all_splits[0].parse().unwrap();
+    
+    //let height_vec = output_msg_vec[1].split("\n").collect::<Vec<&str>>;
+    height
+}
+
+// 
+pub fn get_status(chain_type: &ChainTypes, binary_path: &str) -> Output {
+    let list_peers = match chain_type {
+        ChainTypes::Floonet => {
+            Command::new(binary_path)
+                    .args(["--floonet", "client", "status"])
+                    .output().expect("Failed on init a wallet")
+        },
+        _ => {
+            Command::new(binary_path)
+                    .args(["client", "status"])
+                    .output().expect("Failed on init a wallet")
+        },
+    };
+    list_peers
+}

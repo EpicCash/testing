@@ -1,245 +1,97 @@
-// std
-//use std::{process::{Command, Child, Output}, array, str::Split, path::PathBuf};
-//use std::f32;
-//use std::env;
-//use std::fs::remove_dir_all;
+use std::process::{Command, Output};
+use epic_core::global::ChainTypes;
 
-// Testing
-use testing::{create_wallet, get_passphrase, wait_for, remove_wallet_path};
+// Entry is a wallet init output and return the passprhase
+pub fn get_height_from_list_peers(output: &Output) -> Vec<i32>  {
+    // String of message
+    let output_msg = String::from_utf8_lossy(&output.stdout).into_owned();
 
-
-// // Epir Server
- use epic_core::global::ChainTypes;
-// //use epic_config::GlobalConfig;
-
-// //#[derive(Serialize)]
-// //struct Server_Toml {
-// //    pub run_tui: Option<bool>,
-// //    pub stdout_log_level: Level,
-// //    pub file_log_level: Level,
-// //    pub stratum_server_addr: Option<String>,
-// //    pub seeding_type: Seeding,
-// //    pub seeds: Option<Vec<PeerAddr, Global>>,
-// //}
-
-// #[allow(unused_variables)]
-// fn main() {
-//     let chain_type = ChainTypes::UserTesting;
-//     let password = "1";
-
-//     //get_test_configuration(&chain_type);
-    
-//     //wait_for(5);
-
-//     //let server_binary = "C:\\Users\\T-Gamer\\Desktop\\Brick\\EpicCash\\epic\\target\\release\\epic.exe";//"/home/ba/Desktop/EpicV3/epic/target/release/epic";
-//     let wallet_binary = "/home/ba/Desktop/EpicV3/epic-wallet/target/release/epic-wallet";
-//     //let miner_binary = "C:\\Users\\T-Gamer\\Desktop\\Brick\\EpicCash\\epic-miner\\epic-miner.exe";//"/home/ba/Desktop/epic-miner/target/debug/epic-miner";
-//     //let mut serv = spawn_network(&chain_type, server_binary);
-
-//     let created_wallet = create_wallet(&chain_type, wallet_binary, password);
-//     //let mut te = Command::new(server_binary).args(["--usernet", "--onlyrandomx"]).spawn().expect("msg");
-//     let pass = get_passphrase(&created_wallet);
-
-//     wait_for(2);
-//     let input_args = format!("{} -p {} --usernet init -r", &wallet_binary, &password);
-//     let mut a = Command::new("sh")
-//                         .arg("-c")
-//                         .arg(input_args)
-//                         //.arg(pass)
-//                         .spawn()
-//                         .expect("Failed get txs info a wallet");
-    
-//     println!("\nBEFORE\n");
-//     wait_for(10);
-
-//     println!("====== create {:?} ====== \n", &created_wallet);
-
-//     println!("\n ====== pass {:?} ====== \n", &pass);
-
-//     println!("\n ====== FINALIZED COINS {:?} ====== \n", &a);
-
-//     // let info_str = String::from_utf8_lossy(&info.stdout).into_owned();
-//     // let info_split = info_str.split(' ').collect::<Vec<&str>>();
-    
-
-//     // let values: Vec<f32> = info_split
-//     //                             .into_iter()
-//     //                             .flat_map(|x| x.parse::<f32>())
-//     //                             .collect();
-//     //                             //     if x.contains(".") {
-//     //                             //         x
-//     //                             //     } else {
-//     //                             //         ""
-//     //                             //     }
-//     //                             // })
-//     //                             //.collect();
-
-//     //println!("INFO {:#?} \n", info_split);
-//     // println!("INFO0 {:#?} \n", info_str.split(&['\n','|',' ']).collect::<Vec<&str>>());
-//     // println!("COLLECT {:#?} \n", values);
-
-    
-//     a.kill().expect("Failed on kill wallet");
-
-//     println!("---------- END OF TEST ----------")
-// } 
-
-use std::io::{BufRead, BufReader, Write};
-use std::process::{Command, Stdio};
-use std::sync::mpsc::{channel, Receiver, Sender};
-use std::sync::Mutex;
-
-use std::thread;
-use std::thread::sleep;
-use std::time::Duration;
-
-fn start_process(sender: Sender<String>, receiver: Receiver<String>, binary_path: &str ,input_args: [&str; 5]) {
-    let child = Command::new(binary_path)
-        .args(input_args)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .spawn()
-        .expect("Failed to start process");
-    println!("OUT {:#?}", child);
-    println!("Started process: {}", child.id());
-
-    wait_for(2);
-    println!("AFTER SLEEP");
-
-    thread::spawn(move || {
-        let mut f = BufReader::new(child.stdout.unwrap());
-        let mut stdin = child.stdin.unwrap();
-        println!("f {:?} - stdin {:?}", f, stdin);
-        for line in receiver {
-            println!("\n LINE {:?} \n", String::from_utf8_lossy(line.as_bytes()));
-            stdin.write(line.as_bytes()).unwrap();
-            let mut buf = String::new();
-            match f.read_line(&mut buf) {
-                Ok(_) => {
-                    println!("AA {:?}",buf);
-                    sender.send(buf).unwrap();
-                    continue;
-                }
-                Err(e) => {
-                    println!("an error!: {:?}", e);
-                    break;
-                }
-            }
+    // Split the message into a vector
+    let output_msg_vec = output_msg.split("\nHeight: ").collect::<Vec<&str>>();
+    let mut height_vec: Vec<i32> = Vec::new();
+    for element in output_msg_vec {
+        if element.contains("Total"){
+            let all_splits = element.split("\n").collect::<Vec<&str>>();
+            let b: i32 = all_splits[0].parse().unwrap();
+            height_vec.push(b);
         }
-    });
+    }
+    //let height_vec = output_msg_vec[1].split("\n").collect::<Vec<&str>>;
+    println!("AA {:#?}", height_vec);
+    height_vec
+} 
+
+// Run the init command, if the wallet_data exist -> delete and create a new one
+pub fn get_list_peers(chain_type: &ChainTypes, binary_path: &str) -> Output {
+    let list_peers = match chain_type {
+        ChainTypes::Floonet => {
+            Command::new(binary_path)
+                    .args(["--floonet", "client", "listconnectedpeers"])
+                    .output().expect("Failed on init a wallet")
+        },
+        _ => {
+            Command::new(binary_path)
+                    .args(["client", "listconnectedpeers"])
+                    .output().expect("Failed on init a wallet")
+        },
+    };
+    list_peers
 }
 
-fn start_command_thread(mutex: Mutex<Sender<String>>, msg: String) {
-    thread::spawn(move || {
-        let sender = mutex.lock().unwrap();
-        sleep(Duration::from_secs(3));
-        sender
-            .send(msg)
-            .unwrap();
-    });
+fn get_chain_height(vec_height: Vec<i32>) -> i32 {
+    let max_height = vec_height.iter().max();
+    max_height.unwrap().to_owned()
 }
 
-fn show_entire_info(chain_type: &ChainTypes, binary_path: &str, password: &str) {
-        let info = match chain_type {
-            ChainTypes::UserTesting => {
-                Command::new(binary_path)
-                        .args(["-p", password, "--usernet", "info"])
-                        .output().expect("Failed get info a wallet")
-            },
-            ChainTypes::Floonet => {
-                Command::new(binary_path)
-                        .args(["-p", password, "--floonet", "info"])
-                        .output().expect("Failed get info a wallet")
-            },
-            _ => {
-                Command::new(binary_path)
-                        .args(["-p", password, "info"])
-                        .output().expect("Failed get info a wallet")
-            },
-        };
-        // binary to string
-        let info_str = String::from_utf8_lossy(&info.stdout).into_owned();
-
-        println!("\n ENTIRE INFO {:?} \n", info_str);
+fn check_peers(vec_height: Vec<i32>) {
+    assert!(vec_height.len() > 0)
 }
 
-fn start_listener(sender: Sender<String>, binary_path: &str, password: &str) {
-    // let child = Command::new("ping")
-    //     .arg("google.com")
-    //     .stdout(Stdio::piped())
-    //     .spawn()
-    //     .expect("Failed to start ping process");
+// Entry is a wallet init output and return the passprhase
+pub fn get_height_from_status(output: &Output) -> i32  {
+    // String of message
+    let output_msg = String::from_utf8_lossy(&output.stdout).into_owned();
+
+    // Split the message into a vector
+    let output_msg_vec = output_msg.split("\nChain height: ").collect::<Vec<&str>>();
+    let all_splits = output_msg_vec[1].split("\n").collect::<Vec<&str>>();
+    let height: i32 = all_splits[0].parse().unwrap();
     
-    let child = Command::new(binary_path)
-        .args(["--usernet", "info"])
-        .stdout(Stdio::piped())
-        .spawn()
-        .expect("Failed get info a wallet");
-    
+    //let height_vec = output_msg_vec[1].split("\n").collect::<Vec<&str>>;
+    height
+}
 
-    println!("Started process: {}", child.id());
-
-    thread::spawn(move || {
-        let mut f = BufReader::new(child.stdout.unwrap());
-        loop {
-            let mut buf = String::new();
-            match f.read_line(&mut buf) {
-                Ok(_) => {
-                    sender.send(buf).unwrap();
-                }
-                Err(e) => println!("an error!: {:?}", e),
-            }
-        }
-    });
+// Run the init command, if the wallet_data exist -> delete and create a new one
+pub fn get_status(chain_type: &ChainTypes, binary_path: &str) -> Output {
+    let list_peers = match chain_type {
+        ChainTypes::Floonet => {
+            Command::new(binary_path)
+                    .args(["--floonet", "client", "status"])
+                    .output().expect("Failed on init a wallet")
+        },
+        _ => {
+            Command::new(binary_path)
+                    .args(["client", "status"])
+                    .output().expect("Failed on init a wallet")
+        },
+    };
+    list_peers
 }
 
 fn main() {
+    let chain_type = ChainTypes::Floonet;
+    let server_binary = String::from("/home/jualns/Desktop/epic/target/release/epic");
 
-    let chain_type = ChainTypes::UserTesting;
-    let password = "12";
-   
-    let wallet_binary = "/home/jualns/Desktop/epic-wallet/target/release/epic-wallet";
+    // height from others peers
+    let msg_list_of_peers = get_list_peers(&chain_type, &server_binary);
+    let out_height = get_height_from_list_peers(&msg_list_of_peers);
 
-    remove_wallet_path(&chain_type);
+    // get max of height from othres peers
+    let chain_height_peers = get_chain_height(out_height);
 
-    let input = ["--usernet", "-p", password, "init", "-r"];
-    let bb = format!("{} -p {} --usernet init -r", wallet_binary, password);
-    println!("{bb}");
-    
-    //let created_wallet = create_wallet(&chain_type, wallet_binary, password);
-    
-    //println!("Created Wallet!");
-    
-    //let passphare = get_passphrase(&created_wallet);
-    //let pass = passphare.clone();
-    
-    //println!("PASSPHRASE: {passphare}");
+    // height from local node
+    let msg_status = get_status(&chain_type, &server_binary);
+    let chain_height_status = get_height_from_status(&msg_status);
 
-    let mut child = Command::new(wallet_binary)
-            .args(["--usernet", "init"])
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .spawn().expect("Failed on init a wallet");
-
-    //remove_wallet_path(&chain_type);
-
-    println!("BEFORE SLEEP CHECK FOLDER");
-    wait_for(5);
-    println!("AFTER SLEEP");
-    
-    // let child = Command::new(wallet_binary)
-    //     .args(input)
-    //     .stdin(Stdio::piped())
-    //     .stdout(Stdio::piped())
-    //     .spawn()
-    //     .expect("Failed to start process");
-    println!("OUT {:#?}", child);
-    println!("Started process: {}", child.id());
-   
-    let mut stdin = child.stdin.as_ref().unwrap();
-    stdin.write_all(password.as_bytes()).unwrap();
-    println!("SENDED ");
-    
-    child.kill();
-    println!("Done!");
+    println!("List of Peers: {:#?} * {:#?}", chain_height_peers, chain_height_status);
 }
