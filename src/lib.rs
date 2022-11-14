@@ -553,6 +553,7 @@ pub fn get_status(chain_type: &ChainTypes, binary_path: &str) -> Output {
         },
     };
     list_peers
+}
     
 pub fn generate_vec_to_sent(min_include: i32, max_exclude: i32, number_elements: i32) -> Vec<String> {
     let mut rng = rand::thread_rng();

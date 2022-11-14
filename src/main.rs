@@ -188,7 +188,7 @@ fn main() {
     //_ = create_wallet(&chain_type, wallet_binary.as_str(), password.as_str());
     //big_wallet.http_path =  get_http_wallet();
     // run server and save on world
-    childrens.server = spawn_network(&chain_type, server_binary.as_str());
+    childrens.server = spawn_network(&chain_type, server_binary.as_str(), "--onlyrandomx");
     // save the wallet_listen process on world
     childrens.wallet = spawn_wallet_listen(&chain_type, wallet_binary.as_str(), password.as_str());
     // Run the miner
