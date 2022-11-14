@@ -167,7 +167,7 @@ fn main() {
     let server_binary = Arc::new(String::from("/home/jualns/Desktop/epic/target/release/epic"));
     let wallet_binary = Arc::new(String::from("/home/jualns/Desktop/epic-wallet/target/release/epic-wallet"));
     //let miner_binary = Arc::new(String::from("/home/jualns/Desktop/epic-miner/target/debug/epic-miner"));
-    let http_path =  Arc::new(get_http_wallet());
+    let http_path =  Arc::new(get_http_wallet(&ChainTypes::UserTesting));
 
 
     let mut childrens = ChildProcess::default();
