@@ -3,9 +3,12 @@ use std::path::PathBuf;
 use std::net::SocketAddr;
 use dirs::home_dir;
 use log::Level;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use std::thread::sleep;
 use std::fs::remove_dir_all;
+use chrono::{DateTime, 
+            //Utc, 
+            Local};
 
 // Epic Server
 use epic_core::global::ChainTypes;
@@ -25,10 +28,8 @@ pub const TEST_API_SECRET_FILE_NAME: &'static str = ".api_secret";
 
 // Force the code to await for secs seconds, 
 pub fn wait_for(secs: u64) {
-    println!("BEFORE SLEEP == {} seconds", secs);
     let duration = Duration::from_secs(secs);
     sleep(duration);
-    println!("AFTER SLEEP == {} seconds", secs);
 }
 
 // ChainType to str shortname
@@ -40,9 +41,9 @@ pub fn chain_type_to_str(chain_type: ChainTypes) -> String {
 pub fn str_to_chain_type(shortname: &str) -> ChainTypes {
     match shortname {
         "auto" => ChainTypes::AutomatedTesting,
-        "user" => ChainTypes::UserTesting,
-        "floo" => ChainTypes::Floonet,
-        "main" => ChainTypes::Mainnet,
+        "user" | "usernet" => ChainTypes::UserTesting,
+        "floo" | "floonet" => ChainTypes::Floonet,
+        "main" | "mainnet" => ChainTypes::Mainnet,
         _ => panic!("Specified network does not exist!")
     }
 }
@@ -60,10 +61,12 @@ pub fn spawn_network(chain_type: &ChainTypes, binary_path: &str) -> Child {
     let output = match chain_type {
         ChainTypes::Floonet => Command::new(&binary_path)
                                 .arg("--floonet")
+                                .arg("--onlyrandomx")
                                 .spawn()
                                 .expect("failed to execute process"),
         ChainTypes::UserTesting => Command::new(&binary_path)
                                 .arg("--usernet")
+                                .arg("--onlyrandomx")
                                 .spawn()
                                 .expect("failed to execute process"),
         ChainTypes::Mainnet => Command::new(&binary_path)
@@ -133,8 +136,8 @@ pub fn change_server_toml_by_chain(toml_path: PathBuf ,chain_type: &ChainTypes) 
         ChainTypes::Mainnet => {},
         _ => panic!("Specified network does not exist!"),
     };
-
-    server_toml.write_to_file(toml_path.to_str().unwrap()).expect("Can't save custom toml file");
+    let mut server = server_toml.to_owned();
+    server.write_to_file(toml_path.to_str().unwrap()).expect("Can't save custom toml file");
 }
 
 
@@ -172,7 +175,7 @@ pub fn get_passphrase(output: &Output) -> String  {
 
     // Split the message into a vector
     let output_msg_vec = output_msg.split("\n").collect::<Vec<&str>>();
-    
+
     // If we got a error on init a new wallet, the vector will have only 4 element
     let result = match output_msg_vec.len() > 5 {
         true => output_msg_vec[5].to_owned(),
@@ -235,4 +238,233 @@ pub fn spawn_wallet_listen(chain_type: &ChainTypes, binary_path: &str, password:
 // Spawn a miner
 pub fn spawn_miner(binary_path: &str) -> Child {
     Command::new(&binary_path).spawn().expect("Failed on start the miner")
+}
+
+// run the command ./epic-wallet --network -p <password> send -m <method> -s smallest <amount>
+pub fn send_coins_smallest(chain_type: &ChainTypes, binary_path: &String, method: String, password: &String, amount: String, destination: &String) -> Output {
+    
+    //let str_amount = f32::to_string(&amount);
+
+    let network = match chain_type {
+        ChainTypes::Floonet => "--floonet",
+        ChainTypes::UserTesting => "--usernet",
+        ChainTypes::Mainnet => "",
+        _ => panic!("Specified network does not exist!"),
+    };
+
+    let output = match destination.len() > 0 {
+        true => {  
+            match chain_type {
+                ChainTypes::Mainnet => Command::new(&binary_path)
+                                            .args(["-p", password.as_str() ,"send", "-d", destination.as_str(), "-m", method.as_str() ,"-s", "smallest", amount.as_str()])
+                                            .output()
+                                            .expect("failed to execute process"),
+
+                _                   => Command::new(&binary_path)
+                                            .args(["-p", password.as_str(), network ,"send", "-m", method.as_str(), "-d", destination.as_str() ,"-s", "smallest", amount.as_str()])
+                                            .output()
+                                            .expect("failed to execute process"),
+            }
+        },
+        false => {
+            match chain_type {
+                ChainTypes::Mainnet => Command::new(&binary_path)
+                                            .args(["-p", password.as_str() ,"send", "-m", method.as_str() ,"-s", "smallest", amount.as_str()])
+                                            .output()
+                                            .expect("failed to execute process"),
+                _                   => Command::new(&binary_path)
+                                            .args( ["-p", password.as_str(), network ,"send", "-m", method.as_str() ,"-s", "smallest", amount.as_str()])
+                                            .output()
+                                            .expect("failed to execute process"),
+            }
+        },
+    };
+
+    // let output = match chain_type {
+    //     ChainTypes::Floonet => Command::new(&binary_path)
+    //                             .args(["-p", password.as_str(), "--floonet", "send", "-m", method.as_str(), "-s", "smallest", amount.as_str()])
+    //                             .output()
+    //                             .expect("failed to execute process"),
+    //     ChainTypes::UserTesting => Command::new(&binary_path)
+    //                             .args(["-p", password.as_str(), "--usernet", "", "send", "-m", method.as_str(), "-s", "smallest", amount.as_str()])
+    //                             .output()
+    //                             .expect("failed to execute process"),
+    //     ChainTypes::Mainnet => Command::new(&binary_path)
+    //                             .args(["-p", password.as_str(), "send", "-m", method.as_str(), "-s", "smallest", amount.as_str()])
+    //                             .output()
+    //                             .expect("failed to execute process"),
+    //     _ => panic!("Specified network does not exist!")
+    // };
+
+    //String::from_utf8_lossy(&output.stdout).contains("successfully")
+    output
+}
+
+// Run ./epic-wallet --network and take all values in info
+// return Vec<f32> with 7 values where the values are 
+// [chain_height, Confirmed Total, Immature Coinbase, 
+// Awaiting Confirmation, Awaiting Finalization, Locked by previous transaction, 
+// Currently Spendable]
+pub fn info_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) -> Vec<f32> {
+    let info = match chain_type {
+        ChainTypes::UserTesting => {
+            Command::new(binary_path)
+                    .args(["-p", password, "--usernet", "info"])
+                    .output().expect("Failed get info a wallet")
+        },
+        ChainTypes::Floonet => {
+            Command::new(binary_path)
+                    .args(["-p", password, "--floonet", "info"])
+                    .output().expect("Failed get info a wallet")
+        },
+        _ => {
+            Command::new(binary_path)
+                    .args(["-p", password, "info"])
+                    .output().expect("Failed get info a wallet")
+        },
+    };
+    // binary to string
+    let info_str = String::from_utf8_lossy(&info.stdout).into_owned();
+
+    // split by " " space
+    let info_split:Vec<&str> = info_str.split(' ').collect();
+    // split by \n; | and ' '
+    //let info_mult_split: Vec<&str> = info_str.split(&['\n','|',' ']).collect();
+
+    // f32, return only numbers between space ' '
+    let values: Vec<f32> = info_split
+                                .into_iter()
+                                .flat_map(|x| x.parse::<f32>())
+                                .collect();
+    values
+}
+
+// Check if locked coins == 0, await for 2 minutes to break
+pub fn confirm_transaction(chain_type: &ChainTypes, binary_path: &str, password: &str) {    
+    
+    // time dependence
+    let t0 = Instant::now();
+    let two_minute = Duration::from_secs(120);
+    
+    while t0.elapsed() < two_minute {
+        let values_info = info_wallet(chain_type, binary_path, password);
+        //if values_info[4] > 0.0 && values_info[5] > 0.0 {
+        if values_info[5] > 0.0 {
+            wait_for(5)
+        } else {
+            break
+        }
+    } 
+}
+
+// Run wallet_info and get chain_height from title
+pub fn get_chain_height(chain_type: &ChainTypes, binary_path: &str, password: &str) -> i32 {
+    let values_info = info_wallet(chain_type, binary_path, password);
+    values_info[0] as i32
+}
+
+// new_empty child command to build default structs
+pub fn new_child() -> Child {
+    //Command::new("").spawn().expect("Failed on run a empty Child process")
+    Command::new("echo")
+                .arg("")
+                .spawn()
+                .expect("Failed on run a empty Child process")
+}
+
+// new_empty output command to build default structs
+pub fn new_output() -> Output {
+    //Command::new("").output().expect("Failed on run a empty Output process")
+    Command::new("echo")
+                .arg("")
+                .output()
+                .expect("Failed on run a empty Output process")
+}
+
+// Run ./epic-wallet --network txs
+// return Vec<usize> with 3 values where the values are 
+// [Sent Tx, Received Tx, Confirmed Coinbase] 
+pub fn txs_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) -> String {
+    let txs = match chain_type {
+        ChainTypes::UserTesting => {
+            Command::new(binary_path)
+                    .args(["-p", password, "--usernet", "txs"])
+                    .output().expect("Failed get txs info a wallet")
+        },
+        ChainTypes::Floonet => {
+            Command::new(binary_path)
+                    .args(["-p", password, "--floonet", "txs"])
+                    .output().expect("Failed get txs info a wallet")
+        },
+        _ => {
+            Command::new(binary_path)
+                    .args(["-p", password, "txs"])
+                    .output().expect("Failed get txs info a wallet")
+        },
+    };
+    // binary to string
+    let txs_str = String::from_utf8_lossy(&txs.stdout).into_owned();
+
+    txs_str
+}
+
+pub fn get_number_transactions_txs(chain_type: &ChainTypes, binary_path: &str, password: &str) -> Vec<u32> {
+    let txs_str = txs_wallet(chain_type, binary_path, password);
+
+    // Count
+    let sent_receive_coinbase = vec![
+        txs_str.matches("Sent Tx").count() as u32,
+        txs_str.matches("Received Tx").count() as u32,
+        txs_str.matches("Confirmed").count() as u32 - 1]; // -1 because header of txs command have "Confirmed?"
+    sent_receive_coinbase
+}
+
+pub fn get_http_wallet() -> String {
+    // TODO get from wallet toml (api_listen_interface = "127.0.0.1")
+    let ip = "127.0.0.1";
+
+    // TODO get from wallet toml (api_listen_port = 23415)
+    let port = "23415";
+
+    let http_ip = format!("http://{}:{}", ip, port);
+    http_ip
+}
+
+// run the command ./epic-wallet --network -p <password> <receive|finalize> -m <method> -i <emoji|file> 
+pub fn receive_finalize_coins(chain_type: &ChainTypes, binary_path: &String, method: String, password: &String, receive_finalize: &String ,destination: &str) -> Output {
+    let network = match chain_type {
+        ChainTypes::Floonet => "--floonet",
+        ChainTypes::UserTesting => "--usernet",
+        ChainTypes::Mainnet => "",
+        _ => panic!("Specified network does not exist!"),
+    };
+
+    let output = match chain_type {
+        ChainTypes::Mainnet => Command::new(&binary_path)
+                                    .args(["-p", password.as_str() , receive_finalize, "-m", method.as_str(), "-i", destination])
+                                    .output()
+                                    .expect("failed to execute process"),
+        _                   => Command::new(&binary_path)
+                                    .args(["-p", password.as_str(), network , receive_finalize, "-m", method.as_str(), "-i", destination])
+                                    .output()
+                                    .expect("failed to execute process"),
+    };
+    output
+}
+
+pub fn local_now_str() -> String {
+    let now: DateTime<Local> = Local::now();
+    let now_string = format!("{}", now.format("%Y-%m-%d_%H-%M-%S"));
+    now_string
+}
+
+pub fn generate_file_name() -> String {
+    let name = local_now_str();
+    let sent_file_name = format!("{}.txt", name);
+    sent_file_name
+}
+
+pub fn generate_response_file_name(sent_file_name: &String) -> String {
+    let response_file_name = format!("{}.response", sent_file_name);
+    response_file_name
 }
