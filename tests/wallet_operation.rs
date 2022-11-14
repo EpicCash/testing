@@ -23,7 +23,7 @@ use testing::{
             get_http_wallet,
             receive_finalize_coins,
             generate_file_name,
-            generate_response_file_name,
+            generate_response_file_name, get_home_chain,
             };
 
 // Epic Server
@@ -148,7 +148,7 @@ fn using_network(world: &mut WalletWorld, str_chain: String) {
     let wallet_init = create_wallet(&world.chain_type, world.wallet_binary.as_str(), world.password.as_str());
 
     // run server and save on world
-    world.server = spawn_network(&world.chain_type, world.server_binary.as_str());
+    world.server = spawn_network(&world.chain_type, world.server_binary.as_str(), &str_chain);
     
     // save passphrase on world
     world.passphrase = get_passphrase(&wallet_init);
@@ -215,7 +215,7 @@ fn send_coins(world: &mut WalletWorld, amount: String, method: String) {
     // If method is HTTP or file, send command needs a destination
     let send_output = match method.as_str() {
         "http" => {
-            let dest = get_http_wallet();
+            let dest = get_http_wallet(&world.chain_type);
             send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, &dest)
         },
         "self" => send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, &String::new()),
@@ -252,7 +252,7 @@ fn send_coins(world: &mut WalletWorld, amount: String, method: String) {
 #[when(expr = "I make a recovery")]
 fn recovery_process(world: &mut WalletWorld) {
     //let passphrase = world.passphrase;
-    None
+    ()
 }
  
 //I have 2 new transactions in txs
@@ -321,7 +321,15 @@ fn receive_step(world: &mut WalletWorld, receive_finalize: String, method: Strin
     assert!(output_receive_finalize.status.success())
 }
  
-
+//I check if wallet change to new DB
+#[then(expr="I check if wallet change to new DB")]
+fn check_exist_new_db_file(world: &mut WalletWorld) {
+    let mut home_dir = get_home_chain(&world.chain_type);
+    home_dir.push("wallet_data");
+    home_dir.push("db");
+    //home_dir.push("lmdb");
+    assert!(home_dir.is_dir())
+}   
 
 //I finalize the emoji transaction
 
