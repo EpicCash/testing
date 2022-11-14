@@ -1,8 +1,8 @@
 Feature: Test the methods of transactions and interactions between send, receive and finalize
 
-  #"/home/ba/Desktop/EpicV3/epic/target/release/epic"
-  #"/home/ba/Desktop/EpicV3/epic-wallet/target/release/epic-wallet"
-  #"/home/ba/Desktop/epic-miner/target/debug/epic-miner"
+  #"C:\\Users\\T-Gamer\\Desktop\\Brick\\EpicCash\\epic\\target\\release\\epic.exe" 
+  #"C:\\Users\\T-Gamer\\Desktop\\Brick\\EpicCash\\epic-wallet\\target\\release\\epic-wallet.exe" 
+  #"C:\\Users\\T-Gamer\\Desktop\\Brick\\EpicCash\\epic-miner\\epic-miner.exe" 
 
     Background: Defining settings
       Given The "epic-server" binary is at "/home/jualns/Desktop/epic/target/release/epic" 

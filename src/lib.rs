@@ -58,16 +58,16 @@ pub fn get_ip_new(ip_v4: &str) -> PeerAddr {
 
 
 // Spawn server process by chain type
-pub fn spawn_network(chain_type: &ChainTypes, binary_path: &str) -> Child {
+pub fn spawn_network(chain_type: &ChainTypes, binary_path: &str, policy: &str) -> Child {
     let output = match chain_type {
         ChainTypes::Floonet => Command::new(&binary_path)
                                 .arg("--floonet")
-                                .arg("--onlyrandomx")
+                                .arg(policy)
                                 .spawn()
                                 .expect("failed to execute process"),
         ChainTypes::UserTesting => Command::new(&binary_path)
                                 .arg("--usernet")
-                                .arg("--onlyrandomx")
+                                .arg(policy)
                                 .spawn()
                                 .expect("failed to execute process"),
         ChainTypes::Mainnet => Command::new(&binary_path)
@@ -176,26 +176,29 @@ pub fn get_passphrase(output: &Output) -> String  {
 
     // Split the message into a vector
     let output_msg_vec = output_msg.split("\n").collect::<Vec<&str>>();
-
+    println!("OUT {:#?}", output_msg_vec);
     // If we got a error on init a new wallet, the vector will have only 4 element
     let result = match output_msg_vec.len() > 5 {
-        true => output_msg_vec[5].to_owned(),
+        true => output_msg_vec[3].to_owned(),
         false => panic!("Failed to get passphrase from wallet init!"),
     };
     result
 } 
 
-// Run the init command, if the wallet_data exist -> delete and create a new one
-pub fn create_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) -> Output {
-    // .epic/user ; .epic/floo or .epic/main
+pub fn remove_wallet_path(chain_type: &ChainTypes) {
     let mut wallet_data_path = get_home_chain(chain_type); 
     wallet_data_path.push("wallet_data");
 
     // if wallet_data exist -> remove
-    // if wallet_data_path.exists() {
-    //     remove_dir_all(wallet_data_path).expect("Failed on remove old wallet_data");
-    // }
-    
+    if wallet_data_path.exists() {
+        remove_dir_all(wallet_data_path).expect("Failed on remove old wallet_data");
+    }
+} 
+// Run the init command, if the wallet_data exist -> delete and create a new one
+pub fn create_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) -> Output {
+    // .epic/user ; .epic/floo or .epic/main
+    // if wallet_data exist -> remove
+    remove_wallet_path(chain_type);
     let wallet = match chain_type {
         ChainTypes::UserTesting => {
             Command::new(binary_path)
@@ -474,6 +477,83 @@ pub fn generate_response_file_name(sent_file_name: &String) -> String {
     response_file_name
 }
 
+// Code to return a vector of heights of all connected peers
+pub fn get_height_from_list_peers(output: &Output) -> Vec<i32>  {
+    // String of message
+    let output_msg = String::from_utf8_lossy(&output.stdout).into_owned();
+
+    // Split the message into a vector
+    let output_msg_vec = output_msg.split("\nHeight: ").collect::<Vec<&str>>();
+    let mut height_vec: Vec<i32> = Vec::new();
+    for element in output_msg_vec {
+        if element.contains("Total"){
+            let all_splits = element.split("\n").collect::<Vec<&str>>();
+            let b: i32 = all_splits[0].parse().unwrap();
+            height_vec.push(b);
+        }
+    }
+    //let height_vec = output_msg_vec[1].split("\n").collect::<Vec<&str>>;
+    height_vec
+} 
+
+// Code to return the output referring to the peers
+pub fn get_list_peers(chain_type: &ChainTypes, binary_path: &str) -> Output {
+    let list_peers = match chain_type {
+        ChainTypes::Floonet => {
+            Command::new(binary_path)
+                    .args(["--floonet", "client", "listconnectedpeers"])
+                    .output().expect("Failed on init a wallet")
+        },
+        _ => {
+            Command::new(binary_path)
+                    .args(["client", "listconnectedpeers"])
+                    .output().expect("Failed on init a wallet")
+        },
+    };
+    list_peers
+}
+
+// 
+pub fn get_chain_height_peers(vec_height: Vec<i32>) -> i32 {
+    let max_height = vec_height.iter().max();
+    max_height.unwrap().to_owned()
+}
+
+// 
+pub fn check_peers(vec_height: Vec<i32>) {
+    assert!(vec_height.len() > 0)
+}
+
+// 
+pub fn get_height_from_status(output: &Output) -> i32  {
+    // String of message
+    let output_msg = String::from_utf8_lossy(&output.stdout).into_owned();
+
+    // Split the message into a vector
+    let output_msg_vec = output_msg.split("\nChain height: ").collect::<Vec<&str>>();
+    let all_splits = output_msg_vec[1].split("\n").collect::<Vec<&str>>();
+    let height: i32 = all_splits[0].parse().unwrap();
+    
+    //let height_vec = output_msg_vec[1].split("\n").collect::<Vec<&str>>;
+    height
+}
+
+// 
+pub fn get_status(chain_type: &ChainTypes, binary_path: &str) -> Output {
+    let list_peers = match chain_type {
+        ChainTypes::Floonet => {
+            Command::new(binary_path)
+                    .args(["--floonet", "client", "status"])
+                    .output().expect("Failed on init a wallet")
+        },
+        _ => {
+            Command::new(binary_path)
+                    .args(["client", "status"])
+                    .output().expect("Failed on init a wallet")
+        },
+    };
+    list_peers
+    
 pub fn generate_vec_to_sent(min_include: i32, max_exclude: i32, number_elements: i32) -> Vec<String> {
     let mut rng = rand::thread_rng();
     let range = Uniform::new(min_include, max_exclude); // [min, max)
