@@ -5,8 +5,9 @@ use cucumber::{given, when, then, World, WorldInit};
 use std::convert::Infallible;
 use std::time::{Duration, Instant};
 use std::fmt;
-use std::fs::File;
-use std::io::prelude::*;
+extern crate dotenv;
+use dotenv::dotenv;
+use std::env;
 //use std::process::{Command, Output};
 
 //Testing
@@ -17,17 +18,13 @@ use testing::{
             create_wallet,
             str_to_chain_type,
             spawn_miner, spawn_wallet_listen,
-            get_passphrase,
             send_coins_smallest,
             confirm_transaction,
             info_wallet,
             new_child,
-            //new_output,
             get_number_transactions_txs,
             get_http_wallet,
             receive_finalize_coins,
-            generate_file_name,
-            generate_response_file_name,
             generate_vec_to_sent,
             };
 
@@ -48,6 +45,8 @@ use epic_core::global::ChainTypes;
 //        write!(f, "chain_type :{:?}", self.sent_tx)
 //    }
 //}
+
+#[warn(unused_assignments)]
 
 impl std::default::Default for TransWorld {
 	fn default() -> TransWorld {
@@ -146,20 +145,14 @@ impl fmt::Display for PackTransaction {
     }
 }
 
-fn save_transaction(pack: PackTransaction, name_file: String) {
-    let mut file = File::create(format!("{}.txt", name_file)).expect("Failed on create a transaction file");
-    let text = format!("{}", pack);
-    file.write_all(text.as_bytes()).expect("Failed on write the transaction file");
-}
-
 //Given The epic-server binary is at /home/ba/Desktop/EpicV3/epic/target/release/epic
-#[given(expr = "The {string} binary is at {string}")]
-fn set_binary(world: &mut TransWorld, epic_sys: String, path: String) {
+#[given(expr = "Define {string} binary")]
+fn set_binary(world: &mut TransWorld, epic_sys: String) {
     match epic_sys.as_str() {
-        "epic-server" => {world.server_binary = path},
-        "epic-wallet" => {world.wallet_binary = path},
-        "epic-miner" => {world.miner_binary = path},
-        _ => panic!("Invalid system of epic"),
+        "epic-server" => {world.server_binary = env::var("EPIC_SERVER").unwrap()},
+        "epic-wallet" => {world.wallet_binary = env::var("EPIC_WALLET").unwrap()},
+        "epic-miner" => {world.miner_binary = env::var("EPIC_MINER").unwrap()},
+        _ => panic!("Invalid epic system"),
     };
 }
 
@@ -176,7 +169,7 @@ fn using_network(world: &mut TransWorld, str_chain: String) {
 
     // NEED CREATE WALLET BEFORE SPAWN SERVER, Unable to delete folder if server is on
     // run wallet and save on world
-    let wallet_init = create_wallet(&world.chain_type, world.wallet_binary.as_str(), world.password.as_str());
+    let _wallet_init = create_wallet(&world.chain_type, world.wallet_binary.as_str(), world.password.as_str());
 
     // run server and save on world
     world.server = spawn_network(&world.chain_type, world.server_binary.as_str(), "--onlyrandomx");
@@ -358,6 +351,7 @@ fn transactions_work(world: &mut TransWorld) {
 
 //#[tokio::main]
 fn main() {
+    dotenv().ok();
     println!("Remember to close all running epic systems before running the test");
     futures::executor::block_on(TransWorld::run("./features/scalability.feature"));
 }

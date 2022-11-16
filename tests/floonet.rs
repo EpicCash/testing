@@ -1,8 +1,11 @@
 //use std::fmt;
-use std::{process::Child, fs::remove_file};
+use std::process::Child;
 use async_trait::async_trait;
 use cucumber::{given, when, then, World, WorldInit};
 use std::convert::Infallible;
+extern crate dotenv;
+use dotenv::dotenv;
+use std::env;
 //use std::process::{Command, Output};
 
 //Testing
@@ -13,21 +16,12 @@ use testing::{
             create_wallet,
             str_to_chain_type,
             spawn_miner, spawn_wallet_listen,
-            get_passphrase,
-            send_coins_smallest,
             confirm_transaction,
             info_wallet,
             new_child,
-            //new_output,
-            get_number_transactions_txs,
-            get_http_wallet,
-            receive_finalize_coins,
-            generate_file_name,
-            generate_response_file_name,
             get_height_from_list_peers,
             get_list_peers,
             get_chain_height_peers,
-            check_peers,
             get_height_from_status,
             get_status,    
         };
@@ -104,13 +98,13 @@ impl World for FlooWorld {
     }
 }
 //Given The epic-server binary is at /home/ba/Desktop/EpicV3/epic/target/release/epic
-#[given(expr = "The {string} binary is at {string}")]
-fn set_binary(world: &mut FlooWorld, epic_sys: String, path: String) {
+#[given(expr = "Define {string} binary")]
+fn set_binary(world: &mut FlooWorld, epic_sys: String) {
     match epic_sys.as_str() {
-        "epic-server" => {world.server_binary = path},
-        "epic-wallet" => {world.wallet_binary = path},
-        "epic-miner" => {world.miner_binary = path},
-        _ => panic!("Invalid system of epic"),
+        "epic-server" => {world.server_binary = env::var("EPIC_SERVER").unwrap()},
+        "epic-wallet" => {world.wallet_binary = env::var("EPIC_WALLET").unwrap()},
+        "epic-miner" => {world.miner_binary = env::var("EPIC_MINER").unwrap()},
+        _ => panic!("Invalid epic system"),
     };
 }
 
@@ -127,7 +121,7 @@ fn using_network(world: &mut FlooWorld, str_chain: String) {
 
     // NEED CREATE WALLET BEFORE SPAWN SERVER, Unable to delete folder if server is on
     // run wallet and save on world
-    let wallet_init = create_wallet(&world.chain_type, world.wallet_binary.as_str(), world.password.as_str());
+    let _wallet_init = create_wallet(&world.chain_type, world.wallet_binary.as_str(), world.password.as_str());
 }
 
 #[when(expr = "I start the node with policy {string}")]
@@ -259,6 +253,7 @@ fn kill_all_childs(world: &mut FlooWorld) {
 
 //#[tokio::main]
 fn main() {
+    dotenv().ok();
     println!("Remember to close all running epic systems before running the test");
     futures::executor::block_on(FlooWorld::run("./features/floonet.feature"));
 }

@@ -3,6 +3,9 @@ use std::{process::Child, fs::remove_file};
 use async_trait::async_trait;
 use cucumber::{given, when, then, World, WorldInit};
 use std::convert::Infallible;
+extern crate dotenv;
+use dotenv::dotenv;
+use std::env;
 //use std::process::{Command, Output};
 
 //Testing
@@ -15,7 +18,6 @@ use testing::{
             spawn_miner, spawn_wallet_listen,
             get_passphrase,
             send_coins_smallest,
-            confirm_transaction,
             info_wallet,
             new_child,
             //new_output,
@@ -122,13 +124,13 @@ impl World for WalletWorld {
     }
 }
 //Given The epic-server binary is at /home/ba/Desktop/EpicV3/epic/target/release/epic
-#[given(expr = "The {string} binary is at {string}")]
-fn set_binary(world: &mut WalletWorld, epic_sys: String, path: String) {
+#[given(expr = "Define {string} binary")]
+fn set_binary(world: &mut WalletWorld, epic_sys: String) {
     match epic_sys.as_str() {
-        "epic-server" => {world.server_binary = path},
-        "epic-wallet" => {world.wallet_binary = path},
-        "epic-miner" => {world.miner_binary = path},
-        _ => panic!("Invalid system of epic"),
+        "epic-server" => {world.server_binary = env::var("EPIC_SERVER").unwrap()},
+        "epic-wallet" => {world.wallet_binary = env::var("EPIC_WALLET").unwrap()},
+        "epic-miner" => {world.miner_binary = env::var("EPIC_MINER").unwrap()},
+        _ => panic!("Invalid epic system"),
     };
 }
 
@@ -336,6 +338,7 @@ fn check_exist_new_db_file(world: &mut WalletWorld) {
 
 //#[tokio::main]
 fn main() {
+    dotenv().ok();
     println!("Remember to close all running epic systems before running the test");
     futures::executor::block_on(WalletWorld::run("./features/transactions.feature"));
 }

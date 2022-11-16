@@ -8,18 +8,16 @@ use std::time::Duration;
 //use std::sync::mpsc;
 use std::process::Child;
 //use std::time::Instant;
-use std::process::{Command, Output};
+use std::process::Command;
 
 //Testing
 use testing::{
             wait_for,
             get_test_configuration,
             spawn_network,
-            create_wallet,
-            spawn_miner, spawn_wallet_listen,
+            spawn_wallet_listen,
             send_coins_smallest,
             confirm_transaction,
-            info_wallet,
             new_child,
             get_http_wallet,
             };
@@ -41,6 +39,8 @@ use epic_core::global::ChainTypes;
 //        write!(f, "chain_type :{:?}", self.sent_tx)
 //    }
 //}
+
+#[warn(unused_assignments)]
 
 impl std::default::Default for BigWalletWorld {
 	fn default() -> BigWalletWorld {
@@ -131,9 +131,9 @@ fn generate_vec_to_sent(min_include: i32, max_exclude: i32, number_elements: i32
     vals
 }
 
-fn save_transaction(Pack: PackTransaction, name_file: String) {
+fn save_transaction(pack: PackTransaction, name_file: String) {
     let mut file = File::create(format!("{}.txt", name_file)).expect("Failed on create a transaction file");
-    let text = format!("{}", Pack);
+    let text = format!("{}", pack);
     file.write_all(text.as_bytes()).expect("Failed on write the transaction file");
 }
 
@@ -141,7 +141,7 @@ fn save_data(pos_name: String) {
     let wallet_name = format!("/home/jualns/.epic/user/wallet_data_{}", pos_name);
     let chain_name = format!("/home/jualns/.epic/user/chain_data_{}", pos_name);
 
-    let chain_cop = Command::new("cp")
+    let _chain_cop = Command::new("cp")
                     .args(["-r","/home/jualns/.epic/user/chain_data", &chain_name])
                     .output()
                     .expect("Failed on copy chain_data");

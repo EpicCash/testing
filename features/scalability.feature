@@ -5,9 +5,9 @@ Feature: Test longevity and stress the systems
   #"/home/ba/Desktop/epic-miner/target/debug/epic-miner"
 
     Background: Defining settings
-      Given The "epic-server" binary is at "/home/jualns/Desktop/epic/target/release/epic" 
-      And The "epic-wallet" binary is at "/home/jualns/Desktop/epic-wallet/target/release/epic-wallet"
-      And The "epic-miner" binary is at "/home/jualns/Desktop/epic-miner/target/debug/epic-miner"
+      Given Define "epic-server" binary
+      And Define "epic-wallet" binary
+      And Define "epic-miner" binary
       And I am using the "floonet" network
     #  And I mine some blocks into my wallet
 
