@@ -1,8 +1,8 @@
 //use std::fmt;
-use std::{process::Child, fs::remove_file};
 use async_trait::async_trait;
-use cucumber::{given, when, then, World, WorldInit};
+use cucumber::{given, then, when, World, WorldInit};
 use std::convert::Infallible;
+use std::{fs::remove_file, process::Child};
 extern crate dotenv;
 use dotenv::dotenv;
 use std::env;
@@ -10,23 +10,25 @@ use std::env;
 
 //Testing
 use testing::{
-            wait_for,
-            get_test_configuration,
-            spawn_network,
-            create_wallet,
-            str_to_chain_type,
-            spawn_miner, spawn_wallet_listen,
-            get_passphrase,
-            send_coins_smallest,
-            info_wallet,
-            new_child,
-            //new_output,
-            get_number_transactions_txs,
-            get_http_wallet,
-            receive_finalize_coins,
-            generate_file_name,
-            generate_response_file_name, get_home_chain,
-            };
+    create_wallet,
+    generate_file_name,
+    generate_response_file_name,
+    get_home_chain,
+    get_http_wallet,
+    //new_output,
+    get_number_transactions_txs,
+    get_passphrase,
+    get_test_configuration,
+    info_wallet,
+    new_child,
+    receive_finalize_coins,
+    send_coins_smallest,
+    spawn_miner,
+    spawn_network,
+    spawn_wallet_listen,
+    str_to_chain_type,
+    wait_for,
+};
 
 // Epic Server
 use epic_core::global::ChainTypes;
@@ -47,8 +49,8 @@ use epic_core::global::ChainTypes;
 //}
 
 impl std::default::Default for WalletWorld {
-	fn default() -> WalletWorld {
-		WalletWorld {
+    fn default() -> WalletWorld {
+        WalletWorld {
             chain_type: ChainTypes::UserTesting,
             password: String::from("1"),
             passphrase: String::new(),
@@ -59,20 +61,20 @@ impl std::default::Default for WalletWorld {
             wallet: new_child(),
             miner: new_child(),
             transactions: WalletInformation::default(),
-		}
-	}
+        }
+    }
 }
 
 impl std::default::Default for WalletInformation {
-	fn default() -> WalletInformation {
-		WalletInformation { 
-            sent_tx: 0 as u32, 
+    fn default() -> WalletInformation {
+        WalletInformation {
+            sent_tx: 0 as u32,
             received_tx: 0 as u32,
             confirmed_coinbase: 0 as u32,
             sent_path: String::new(),
             receive_path: String::new(),
         }
-	}
+    }
 }
 
 #[derive(Debug)]
@@ -84,7 +86,7 @@ pub struct WalletInformation {
     pub receive_path: String,
 }
 
-// These `Cat` definitions would normally be inside your project's code, 
+// These `Cat` definitions would normally be inside your project's code,
 // not test code, but we create them here for the show case.
 #[derive(Debug, WorldInit)]
 pub struct WalletWorld {
@@ -120,25 +122,24 @@ impl World for WalletWorld {
             wallet: new_child(),
             miner: new_child(),
             transactions: WalletInformation::default(),
-		})
+        })
     }
 }
 //Given The epic-server binary is at /home/ba/Desktop/EpicV3/epic/target/release/epic
 #[given(expr = "Define {string} binary")]
 fn set_binary(world: &mut WalletWorld, epic_sys: String) {
     match epic_sys.as_str() {
-        "epic-server" => {world.server_binary = env::var("EPIC_SERVER").unwrap()},
-        "epic-wallet" => {world.wallet_binary = env::var("EPIC_WALLET").unwrap()},
-        "epic-miner" => {world.miner_binary = env::var("EPIC_MINER").unwrap()},
+        "epic-server" => world.server_binary = env::var("EPIC_SERVER").unwrap(),
+        "epic-wallet" => world.wallet_binary = env::var("EPIC_WALLET").unwrap(),
+        "epic-miner" => world.miner_binary = env::var("EPIC_MINER").unwrap(),
         _ => panic!("Invalid epic system"),
     };
 }
 
 #[given(expr = "I am using the {string} network")]
 fn using_network(world: &mut WalletWorld, str_chain: String) {
-
     let chain_t = str_to_chain_type(&str_chain);
-    
+
     world.chain_type = chain_t;
     // config epic-server.toml with custom configuration
     get_test_configuration(&world.chain_type);
@@ -147,16 +148,28 @@ fn using_network(world: &mut WalletWorld, str_chain: String) {
 
     // NEED CREATE WALLET BEFORE SPAWN SERVER, Unable to delete folder if server is on
     // run wallet and save on world
-    let wallet_init = create_wallet(&world.chain_type, world.wallet_binary.as_str(), world.password.as_str());
+    let wallet_init = create_wallet(
+        &world.chain_type,
+        world.wallet_binary.as_str(),
+        world.password.as_str(),
+    );
 
     // run server and save on world
-    world.server = spawn_network(&world.chain_type, world.server_binary.as_str(), &str_chain);
-    
+    world.server = spawn_network(
+        &world.chain_type,
+        world.server_binary.as_str(),
+        Some(&str_chain),
+    );
+
     // save passphrase on world
     world.passphrase = get_passphrase(&wallet_init);
 
     // save the wallet_listen process on world
-    world.wallet = spawn_wallet_listen(&world.chain_type, world.wallet_binary.as_str(), world.password.as_str());
+    world.wallet = spawn_wallet_listen(
+        &world.chain_type,
+        world.wallet_binary.as_str(),
+        world.password.as_str(),
+    );
 
     // Run the miner
     world.miner = spawn_miner(&world.miner_binary);
@@ -168,30 +181,38 @@ fn init_wallet(world: &mut WalletWorld, service: String) {
     match service.as_str() {
         "wallet" => {
             // save the wallet_listen process on world
-            world.wallet = spawn_wallet_listen(&world.chain_type, world.wallet_binary.as_str(), world.password.as_str());
+            world.wallet = spawn_wallet_listen(
+                &world.chain_type,
+                world.wallet_binary.as_str(),
+                world.password.as_str(),
+            );
         }
         "miner" => {
             // Run the miner
             world.miner = spawn_miner(&world.miner_binary);
         }
-        _ => panic!("Can't initiate {service}!")
+        _ => panic!("Can't initiate {service}!"),
     }
 }
 
 // I mine 11 blocks and stop miner
 #[given(expr = "I mine {int} blocks and stop miner")]
 fn mine_x_blocks(world: &mut WalletWorld, blocks: u32) {
-    let mut txs = get_number_transactions_txs(&world.chain_type, &world.wallet_binary, &world.password);
-    let mut confirmed_coinbase = txs.last().expect("Can't get the number of Confirmed Coinbase!");
-    
+    let mut txs =
+        get_number_transactions_txs(&world.chain_type, &world.wallet_binary, &world.password);
+    let mut confirmed_coinbase = txs
+        .last()
+        .expect("Can't get the number of Confirmed Coinbase!");
+
     while confirmed_coinbase < &blocks {
         txs = get_number_transactions_txs(&world.chain_type, &world.wallet_binary, &world.password);
-        confirmed_coinbase = txs.last().expect("Can't get the number of Confirmed Coinbase!"); 
+        confirmed_coinbase = txs
+            .last()
+            .expect("Can't get the number of Confirmed Coinbase!");
     }
 
     world.miner.kill().expect("Miner wasn't running");
 }
-
 
 #[given(expr = "I have a wallet with coins")]
 fn check_coins_in_wallet(world: &mut WalletWorld) {
@@ -205,49 +226,78 @@ fn send_coins(world: &mut WalletWorld, amount: String, method: String) {
     // TODO destination (File and HTTP methods)
 
     // Update transactions information in WalletInformation
-    let transaction_info = get_number_transactions_txs(&world.chain_type, &world.wallet_binary, &world.password);
+    let transaction_info =
+        get_number_transactions_txs(&world.chain_type, &world.wallet_binary, &world.password);
     let new_transactions_information = WalletInformation {
-                                                            sent_tx: transaction_info[0],
-                                                            received_tx: transaction_info[1],
-                                                            confirmed_coinbase: transaction_info[2],
-                                                            sent_path: String::new(),
-                                                            receive_path: String::new(),};
-    world.transactions = new_transactions_information; 
-    
+        sent_tx: transaction_info[0],
+        received_tx: transaction_info[1],
+        confirmed_coinbase: transaction_info[2],
+        sent_path: String::new(),
+        receive_path: String::new(),
+    };
+    world.transactions = new_transactions_information;
+
     // If method is HTTP or file, send command needs a destination
     let send_output = match method.as_str() {
         "http" => {
             let dest = get_http_wallet(&world.chain_type);
-            send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, &dest)
-        },
-        "self" => send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, &String::new()),
+            send_coins_smallest(
+                &world.chain_type,
+                &world.wallet_binary,
+                method,
+                &world.password,
+                amount,
+                &dest,
+            )
+        }
+        "self" => send_coins_smallest(
+            &world.chain_type,
+            &world.wallet_binary,
+            method,
+            &world.password,
+            amount,
+            &String::new(),
+        ),
         "emoji" => {
-            let out_emoji = send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, &String::new());
+            let out_emoji = send_coins_smallest(
+                &world.chain_type,
+                &world.wallet_binary,
+                method,
+                &world.password,
+                amount,
+                &String::new(),
+            );
             let sent_str = String::from_utf8_lossy(&out_emoji.stdout).into_owned();
-            let sent_vec:Vec<&str> = sent_str.split('\n').collect();
+            let sent_vec: Vec<&str> = sent_str.split('\n').collect();
 
             // Save the emoji sent message
             world.transactions.sent_path = String::from(sent_vec[0]);
 
             out_emoji
-        },
+        }
         "file" => {
             let file_name = generate_file_name();
             let response_file_name = generate_response_file_name(&file_name);
-            let out_file = send_coins_smallest(&world.chain_type, &world.wallet_binary, method, &world.password, amount, &file_name);
-            
+            let out_file = send_coins_smallest(
+                &world.chain_type,
+                &world.wallet_binary,
+                method,
+                &world.password,
+                amount,
+                &file_name,
+            );
+
             // Save the send file name
             world.transactions.sent_path = file_name;
             // Save the response file name
             world.transactions.receive_path = response_file_name;
 
             out_file
-        },
+        }
 
-        _ => panic!("Method not found!")
+        _ => panic!("Method not found!"),
     };
     assert!(send_output.status.success())
-
 }
 
 // I make a recovery
@@ -256,25 +306,30 @@ fn recovery_process(world: &mut WalletWorld) {
     //let passphrase = world.passphrase;
     ()
 }
- 
+
 //I have 2 new transactions in txs
 #[then(expr = "I have {int} new transactions in txs")]
 fn check_new_transactions(world: &mut WalletWorld, number_transactions: u32) {
     // Update transactions information in WalletInformation
-    let transaction_info = get_number_transactions_txs(&world.chain_type, &world.wallet_binary, &world.password);
+    let transaction_info =
+        get_number_transactions_txs(&world.chain_type, &world.wallet_binary, &world.password);
     let new_info = WalletInformation {
-                                        sent_tx: transaction_info[0],
-                                        received_tx: transaction_info[1],
-                                        confirmed_coinbase: transaction_info[2],
-                                        sent_path: String::new(),
-                                        receive_path: String::new(),};
-    let int_number = number_transactions/2;
-    
+        sent_tx: transaction_info[0],
+        received_tx: transaction_info[1],
+        confirmed_coinbase: transaction_info[2],
+        sent_path: String::new(),
+        receive_path: String::new(),
+    };
+    let int_number = number_transactions / 2;
+
     // Sent tx
     assert_eq!(world.transactions.sent_tx + int_number, new_info.sent_tx);
 
     // Received tx
-    assert_eq!(world.transactions.received_tx + int_number, new_info.received_tx);
+    assert_eq!(
+        world.transactions.received_tx + int_number,
+        new_info.received_tx
+    );
 }
 
 #[then(expr = "I kill all running epic systems")]
@@ -285,7 +340,6 @@ fn kill_all_childs(world: &mut WalletWorld) {
 
 #[when(expr = "I {word} the {word} transaction")]
 fn receive_step(world: &mut WalletWorld, receive_finalize: String, method: String) {
-
     let path_emoji_file = match receive_finalize.as_str() {
         "receive" => &world.transactions.sent_path,
         "finalize" => &world.transactions.receive_path,
@@ -296,9 +350,16 @@ fn receive_step(world: &mut WalletWorld, receive_finalize: String, method: Strin
 
     let output_receive_finalize = match method.as_str() {
         "emoji" => {
-            let out_emoji = receive_finalize_coins(&world.chain_type, &world.wallet_binary, method, &world.password, &receive_finalize, path_emoji_file);
+            let out_emoji = receive_finalize_coins(
+                &world.chain_type,
+                &world.wallet_binary,
+                method,
+                &world.password,
+                &receive_finalize,
+                path_emoji_file,
+            );
             let out_str = String::from_utf8_lossy(&out_emoji.stdout).into_owned();
-            let out_vec:Vec<&str> = out_str.split('\n').collect();
+            let out_vec: Vec<&str> = out_str.split('\n').collect();
 
             // Save the emoji sent|receive message
             if receive_finalize.as_str() == "receive" {
@@ -306,35 +367,42 @@ fn receive_step(world: &mut WalletWorld, receive_finalize: String, method: Strin
             }
 
             out_emoji
-        },
+        }
         "file" => {
-            let out_file = receive_finalize_coins(&world.chain_type, &world.wallet_binary, method, &world.password, &receive_finalize, path_emoji_file);
-            
+            let out_file = receive_finalize_coins(
+                &world.chain_type,
+                &world.wallet_binary,
+                method,
+                &world.password,
+                &receive_finalize,
+                path_emoji_file,
+            );
+
             if receive_finalize.as_str() == "finalize" {
                 remove_file(&world.transactions.sent_path).expect("Failed on delete sent file!");
-                remove_file(&world.transactions.receive_path).expect("Failed on delete receive file!")
+                remove_file(&world.transactions.receive_path)
+                    .expect("Failed on delete receive file!")
             }
-            
+
             out_file
-        },
-        _ => panic!("Receive or Finalize method not found!")
+        }
+        _ => panic!("Receive or Finalize method not found!"),
     };
 
     assert!(output_receive_finalize.status.success())
 }
- 
+
 //I check if wallet change to new DB
-#[then(expr="I check if wallet change to new DB")]
+#[then(expr = "I check if wallet change to new DB")]
 fn check_exist_new_db_file(world: &mut WalletWorld) {
     let mut home_dir = get_home_chain(&world.chain_type);
     home_dir.push("wallet_data");
     home_dir.push("db");
     //home_dir.push("lmdb");
     assert!(home_dir.is_dir())
-}   
+}
 
 //I finalize the emoji transaction
-
 
 //#[tokio::main]
 fn main() {
