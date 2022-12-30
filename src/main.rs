@@ -149,12 +149,11 @@ fn main() {
 
     // Multi-thread but with only 1 thread, because wallet can't build multiple transactions in the same time (yet)
     for _ in 0..1 {
+        //number of threads
         let method_to_sent = Arc::clone(&method_to_send);
         let pass = Arc::clone(&password);
         let chain_t = Arc::clone(&chain_type);
-        //let server_bin = Arc::clone(&server_binary);
         let wallet_bin = Arc::clone(&wallet_binary);
-        //let miner_bin = Arc::clone(&miner_binary);
         let http_pa = Arc::clone(&http_path);
 
         let handle = thread::spawn(move || {
@@ -193,10 +192,13 @@ fn main() {
 
                 pack_transactions.duration_time.push(t_elapsed);
                 println!(
-                    "-- Transaction number {:?} -- \n		Amount is: {:?}\n		Time elapsed: {:?}",
+                    "\n-- Transaction number {:?} -- \n		Amount is: {:?}\n		Time elapsed: {:?}",
                     t_k, pack_transactions.vec_amount[t_k], t_elapsed
                 );
-                println!("Output of sent: {:?}", String::from_utf8_lossy(&out.stdout));
+                println!(
+                    "      Output of sent: {:?}",
+                    String::from_utf8_lossy(&out.stdout)
+                );
 
                 // Save step
                 // float of step (to divide)
