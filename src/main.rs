@@ -4,37 +4,21 @@ use std::io::prelude::*;
 use std::sync::Arc;
 use std::{fmt, fs::File, thread, time};
 
-use std::time::Duration;
-//use std::sync::mpsc;
 use std::process::Child;
-//use std::time::Instant;
 use std::process::Command;
+use std::time::Duration;
+
+use dotenv::dotenv;
+use std::env;
 
 //Testing
 use testing::{
     confirm_transaction, get_http_wallet, get_test_configuration, new_child, send_coins_smallest,
-    spawn_network, spawn_wallet_listen, wait_for,
+    spawn_miner, spawn_network, spawn_wallet_listen, wait_for,
 };
 
 // Epic Server
 use epic_core::global::ChainTypes;
-
-//Epic Wallet
-//use epic_wallet_config::config::initial_setup_wallet;
-
-//impl fmt::Debug for TransWorld {
-//    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//        write!(f, "chain_type :{:?}", self.wallet_binary)
-//    }
-//}
-
-//impl fmt::Debug for WalletInformation {
-//    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//        write!(f, "chain_type :{:?}", self.sent_tx)
-//    }
-//}
-
-#[warn(unused_assignments)]
 
 impl std::default::Default for BigWalletWorld {
     fn default() -> BigWalletWorld {
@@ -49,12 +33,6 @@ impl std::default::Default for BigWalletWorld {
         }
     }
 }
-
-// impl std::clone::Clone for BigWalletWorld {
-//     fn clone(&self) -> Self {
-//         self.chain_type.clone()
-//     }
-// }
 
 impl std::default::Default for ChildProcess {
     fn default() -> ChildProcess {
@@ -101,24 +79,6 @@ pub struct PackTransaction {
     pub vec_amount: Vec<String>,
 }
 
-//I finalize the emoji transaction
-
-////////////////////////////////////////////////
-///
-///
-///
-///
-///
-
-// fn have_coins_in_wallet(_chain_type: &ChainTypes, _wallet_binary: &String, _password: &String, _multiple: &f32) -> bool {
-//     // let comparative_value: &f32 = &15.0;
-//     // let info = info_wallet(chain_type, wallet_binary, password);
-//     // let current_spendable = info.last().expect("Can't get the current spendable!");
-//     // current_spendable > &(comparative_value*multiple)
-//     wait_for(10);
-//     true
-// }
-
 fn generate_vec_to_sent(min_include: i32, max_exclude: i32, number_elements: i32) -> Vec<String> {
     let mut rng = rand::thread_rng();
     let range = Uniform::new(min_include, max_exclude); // [min, max)
@@ -155,54 +115,39 @@ fn save_data(pos_name: String) {
 
 //#[tokio::main]
 fn main() {
+    dotenv().ok();
+
     let method_send = String::from("http");
     let method_to_send = Arc::new(method_send);
-
-    //// Init the world
-    //let mut big_wallet = BigWalletWorld::default();
 
     //// Init the variables
     let password = Arc::new(String::from("1"));
     let chain_type = Arc::new(ChainTypes::UserTesting);
-    let server_binary = Arc::new(String::from(
-        "/home/jualns/Desktop/epic/target/release/epic",
-    ));
-    let wallet_binary = Arc::new(String::from(
-        "/home/jualns/Desktop/epic-wallet/target/release/epic-wallet",
-    ));
-    //let miner_binary = Arc::new(String::from("/home/jualns/Desktop/epic-miner/target/debug/epic-miner"));
+    let server_binary = Arc::new(env::var("EPIC_SERVER").unwrap());
+    let wallet_binary = Arc::new(env::var("EPIC_WALLET").unwrap());
+    let miner_binary = Arc::new(env::var("EPIC_MINER").unwrap());
     let http_path = Arc::new(get_http_wallet(&ChainTypes::UserTesting));
 
-    let mut childrens = ChildProcess::default();
-
-    // big_wallet.chain_type = ChainTypes::UserTesting;
-    // big_wallet.server_binary = String::from("/home/jualns/Desktop/epic/target/release/epic");
-    // big_wallet.wallet_binary = String::from("/home/jualns/Desktop/epic-wallet/target/release/epic-wallet");
-    // big_wallet.miner_binary = String::from("/home/jualns/Desktop/epic-miner/target/debug/epic-miner");
-
     //// Init the systems
+    let mut childrens = ChildProcess::default();
 
     // config epic-server.toml with custom configuration
     get_test_configuration(&chain_type);
     // Wait the epic-servet.toml save
     wait_for(5);
-    // run wallet and save on world
-    //_ = create_wallet(&chain_type, wallet_binary.as_str(), password.as_str());
-    //big_wallet.http_path =  get_http_wallet();
-    // run server and save on world
+    // run server and wallet, and save on world
     childrens.server = spawn_network(&chain_type, server_binary.as_str(), Some("--onlyrandomx"));
     // save the wallet_listen process on world
     childrens.wallet = spawn_wallet_listen(&chain_type, wallet_binary.as_str(), password.as_str());
     // Run the miner
-    //childrens.miner = spawn_miner(&miner_binary);
+    childrens.miner = spawn_miner(&miner_binary);
 
     // wait for 30 secs to miner start
-    //println!("BEFORE SLEEP!");
-    //wait_for(60);
-    //println!("AFTER SLEEP!");
+    wait_for(30);
 
     let mut handles_vec = Vec::new();
 
+    // Multi-thread but with only 1 thread, because wallet can't build multiple transactions in the same time (yet)
     for _ in 0..1 {
         let method_to_sent = Arc::clone(&method_to_send);
         let pass = Arc::clone(&password);
@@ -215,23 +160,25 @@ fn main() {
         let handle = thread::spawn(move || {
             // prepare the pack of transactions
             let mut now = time::Instant::now();
+            // number of transactions
+            let number_transactions_total: u32 = 20;
             let mut pack_transactions = PackTransaction {
-                number_transactions: 21,
-                duration_time: Vec::new(), //vec![now.elapsed(); 1],
-                vec_amount: generate_vec_to_sent(0, 1000, 21), //Vec::new(), //vec!["1.0".to_string()],
+                number_transactions: number_transactions_total + 1, // +1 because we lost the fisrt transaction (logical error on code)
+                duration_time: Vec::new(),                          //vec![now.elapsed(); 1],
+                vec_amount: generate_vec_to_sent(0, 1000, number_transactions_total as i32 + 1), //Vec::new(), //vec!["1.0".to_string()],
             };
-            //pack_transactions.duration_time.push(now.elapsed());
-            //pack_transactions.vec_amount.push("1.0".to_string());
 
+            // lost the first transaction
             let mut amount: String = pack_transactions
                 .vec_amount
                 .first()
                 .expect("Can't have amount to send")
                 .to_string();
+            // step to code save the chain_data and wallet_data
             let k_param = 100;
             for t_k in 0..pack_transactions.number_transactions as usize {
                 amount = pack_transactions.vec_amount[t_k].to_string();
-                println!("-- HERE  amount: {:?} --", &amount);
+
                 now = time::Instant::now();
                 let out = send_coins_smallest(
                     &chain_t,
@@ -241,15 +188,24 @@ fn main() {
                     amount,
                     &http_pa,
                 );
-                println!("OUTPUT OF SENT {:?}", String::from_utf8_lossy(&out.stdout));
 
-                pack_transactions.duration_time.push(now.elapsed());
+                let t_elapsed = now.elapsed();
 
+                pack_transactions.duration_time.push(t_elapsed);
+                println!(
+                    "-- Transaction number {:?} -- \n		Amount is: {:?}\n		Time elapsed: {:?}",
+                    t_k, pack_transactions.vec_amount[t_k], t_elapsed
+                );
+                println!("Output of sent: {:?}", String::from_utf8_lossy(&out.stdout));
+
+                // Save step
+                // float of step (to divide)
                 let tt_kk = t_k as f32;
+                // if transaction/step is Int => step done => save
                 let div = tt_kk / k_param as f32;
                 if div == div.floor() {
                     save_data(div.to_string());
-                    println!("SAVE WALLET AND CHAIN DATA!")
+                    println!("SAVED WALLET AND CHAIN DATA!")
                 }
             }
             save_transaction(
@@ -270,7 +226,8 @@ fn main() {
     confirm_transaction(&chain_type, &wallet_binary, &password);
 
     //// Finish all systems
-    //childrens.miner.kill().expect("Can't kill miner!");
+    childrens.miner.kill().expect("Can't kill miner!");
     childrens.server.kill().expect("Can't kill server!");
     childrens.wallet.kill().expect("Can't kill wallet!");
+    println!("\n\n---FINISH!---\n\n")
 }
