@@ -1,4 +1,3 @@
-//use std::fmt;
 use async_trait::async_trait;
 use cucumber::{given, then, when, World, WorldInit};
 use std::convert::Infallible;
@@ -6,7 +5,6 @@ use std::process::Child;
 extern crate dotenv;
 use dotenv::dotenv;
 use std::env;
-//use std::process::{Command, Output};
 
 //Testing
 use testing::{
@@ -17,21 +15,6 @@ use testing::{
 
 // Epic Server
 use epic_core::global::ChainTypes;
-
-//Epic Wallet
-//use epic_wallet_config::config::initial_setup_wallet;
-
-//impl fmt::Debug for FlooWorld {
-//    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//        write!(f, "chain_type :{:?}", self.wallet_binary)
-//    }
-//}
-
-//impl fmt::Debug for WalletInformation {
-//    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//        write!(f, "chain_type :{:?}", self.sent_tx)
-//    }
-//}
 
 impl std::default::Default for FlooWorld {
     fn default() -> FlooWorld {
@@ -140,12 +123,9 @@ fn check_chain_synced(world: &mut FlooWorld) {
         let msg_status = get_status(&world.chain_type, &world.server_binary);
         chain_height_status = get_height_from_status(&msg_status);
 
-        println!("-1");
         // height from others peers
         let msg_list_of_peers = get_list_peers(&world.chain_type, &world.server_binary);
-        println!("-2");
         let out_height = get_height_from_list_peers(&msg_list_of_peers);
-        println!("-3 out_height: {:?}", out_height);
         // get max of height from othres peers
         chain_height_peers = get_chain_height_peers(out_height);
         while chain_height_peers == 0 && num_checks_peers < 20 {
@@ -156,20 +136,16 @@ fn check_chain_synced(world: &mut FlooWorld) {
             };
             let msg_list_of_peers = get_list_peers(&world.chain_type, &world.server_binary);
             let out_height = get_height_from_list_peers(&msg_list_of_peers);
-            println!("-3 out_height: {:?}", out_height);
             chain_height_peers = get_chain_height_peers(out_height);
         }
 
-        println!("-6");
         if chain_height_status < chain_height_peers && num_checks < 10 {
-            println!("-7");
             wait_for(15);
             num_checks += 1
         } else {
             break;
         };
     }
-    println!("-8");
     assert_eq!(
         chain_height_peers, chain_height_status,
         "\nWe are testing height by peers {} and local height {}",

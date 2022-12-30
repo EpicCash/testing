@@ -1,15 +1,9 @@
 Feature: Test the methods of transactions and interactions between send, receive and finalize
 
-  #"C:\\Users\\T-Gamer\\Desktop\\Brick\\EpicCash\\epic\\target\\release\\epic.exe"
-  #"C:\\Users\\T-Gamer\\Desktop\\Brick\\EpicCash\\epic-wallet\\target\\release\\epic-wallet.exe"
-  #"C:\\Users\\T-Gamer\\Desktop\\Brick\\EpicCash\\epic-miner\\epic-miner.exe"
-
   Background: Defining settings
     Given Define "epic-server" binary
     And Define "epic-wallet" binary
     And Define "epic-miner" binary
-    #And The "epic-wallet" binary is at "/home/jualns/Desktop/epic-wallet/target/release/epic-wallet"
-    #And The "epic-miner" binary is at "/home/jualns/Desktop/epic-miner/target/release/epic-miner"
     And I am using the "usernet" network
     When I start the node with policy "onlyrandomx"
     When I start the wallet

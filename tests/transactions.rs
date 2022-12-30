@@ -1,4 +1,3 @@
-//use std::fmt;
 use std::{fs::remove_file, process::Child};
 extern crate dotenv;
 use async_trait::async_trait;
@@ -6,47 +5,17 @@ use cucumber::{given, then, when, World, WorldInit};
 use dotenv::dotenv;
 use std::convert::Infallible;
 use std::env;
-//use std::process::{Command, Output};
 
 //Testing
 use testing::{
-    confirm_transaction,
-    create_wallet,
-    generate_file_name,
-    generate_response_file_name,
-    get_http_wallet,
-    //new_output,
-    get_number_transactions_txs,
-    get_passphrase,
-    get_test_configuration,
-    info_wallet,
-    new_child,
-    receive_finalize_coins,
-    send_coins_smallest,
-    spawn_miner,
-    spawn_network,
-    spawn_wallet_listen,
-    str_to_chain_type,
-    wait_for,
+    confirm_transaction, create_wallet, generate_file_name, generate_response_file_name,
+    get_http_wallet, get_number_transactions_txs, get_passphrase, get_test_configuration,
+    info_wallet, new_child, receive_finalize_coins, send_coins_smallest, spawn_miner,
+    spawn_network, spawn_wallet_listen, str_to_chain_type, wait_for,
 };
 
 // Epic Server
 use epic_core::global::ChainTypes;
-
-//Epic Wallet
-//use epic_wallet_config::config::initial_setup_wallet;
-
-//impl fmt::Debug for TransWorld {
-//    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//        write!(f, "chain_type :{:?}", self.wallet_binary)
-//    }
-//}
-
-//impl fmt::Debug for WalletInformation {
-//    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//        write!(f, "chain_type :{:?}", self.sent_tx)
-//    }
-//}
 
 impl std::default::Default for TransWorld {
     fn default() -> TransWorld {
@@ -391,8 +360,6 @@ fn receive_step(world: &mut TransWorld, receive_finalize: String, method: String
 
     assert!(output_receive_finalize.status.success())
 }
-
-//I finalize the emoji transaction
 
 //#[tokio::main]
 fn main() {
