@@ -18,12 +18,14 @@ Feature: Test longevity and stress the systems
     And All transactions work
     And I kill all running epic systems
 
+# Scenario planned but not yet done
 #@serial
 #Scenario: Connection multiple nodes
 #  Given I am using the <floonet> network
 #  When I create a new HOME and start a new node <10> times
 #  Then The nodes connect to another
 
+# Scenario planned but not yet done
 #@serial
 #Scenario: Testing the operation of a huge wallet
 #  Given I am using the <usernet> network
