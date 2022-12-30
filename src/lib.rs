@@ -92,18 +92,6 @@ pub fn spawn_network(chain_type: &ChainTypes, binary_path: &str, policy: Option<
             _ => panic!("Specified network does not exist!"),
         },
     };
-    // let output = if cfg!(target_os = "windows") {
-    //     Command::new("cmd")
-    //             .args(["/C", "echo hello"])
-    //             .output()
-    //             .expect("failed to execute server process")
-    // } else {
-    //     Command::new(binary_path)
-    //             .arg("--floonet")
-    //             .arg("echo hello")
-    //             .output()
-    //             .expect("failed to execute server process")
-    // };
     output
 }
 
@@ -155,14 +143,11 @@ pub fn change_server_toml_by_chain(toml_path: PathBuf, chain_type: &ChainTypes) 
                 .unwrap()
                 .server
                 .p2p_config
-                .seeding_type = Seeding::List; //Some("List".to_owned());
+                .seeding_type = Seeding::List;
 
-            // ip Floonet VM 15.229.31.27:23414
-            //let ip_1 = get_ip(15, 229, 31, 27, 23414);
             let ip_1 = get_ip_new("15.229.31.27:23414");
             let mut vec_ip: Vec<PeerAddr> = Vec::new();
             vec_ip.push(ip_1);
-            //let vec_ip = vec![ip_1];
 
             // Change the seeding_type to List
             server_toml
@@ -171,7 +156,7 @@ pub fn change_server_toml_by_chain(toml_path: PathBuf, chain_type: &ChainTypes) 
                 .unwrap()
                 .server
                 .p2p_config
-                .seeds = Some(vec_ip); //Some(vec_ip.to_owned());
+                .seeds = Some(vec_ip);
         }
         //For now mainnet can run with default configuration
         ChainTypes::Mainnet => {}
@@ -293,8 +278,6 @@ pub fn send_coins_smallest(
     amount: String,
     destination: &String,
 ) -> Output {
-    //let str_amount = f32::to_string(&amount);
-
     let network = match chain_type {
         ChainTypes::Floonet => "--floonet",
         ChainTypes::UserTesting => "--usernet",
@@ -367,24 +350,6 @@ pub fn send_coins_smallest(
                 .expect("failed to execute process"),
         },
     };
-
-    // let output = match chain_type {
-    //     ChainTypes::Floonet => Command::new(&binary_path)
-    //                             .args(["-p", password.as_str(), "--floonet", "send", "-m", method.as_str(), "-s", "smallest", amount.as_str()])
-    //                             .output()
-    //                             .expect("failed to execute process"),
-    //     ChainTypes::UserTesting => Command::new(&binary_path)
-    //                             .args(["-p", password.as_str(), "--usernet", "", "send", "-m", method.as_str(), "-s", "smallest", amount.as_str()])
-    //                             .output()
-    //                             .expect("failed to execute process"),
-    //     ChainTypes::Mainnet => Command::new(&binary_path)
-    //                             .args(["-p", password.as_str(), "send", "-m", method.as_str(), "-s", "smallest", amount.as_str()])
-    //                             .output()
-    //                             .expect("failed to execute process"),
-    //     _ => panic!("Specified network does not exist!")
-    // };
-
-    //String::from_utf8_lossy(&output.stdout).contains("successfully")
     output
 }
 
@@ -414,7 +379,6 @@ pub fn info_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) -
     // split by " " space
     let info_split: Vec<&str> = info_str.split(' ').collect();
     // split by \n; | and ' '
-    //let info_mult_split: Vec<&str> = info_str.split(&['\n','|',' ']).collect();
 
     // f32, return only numbers between space ' '
     let values: Vec<f32> = info_split
@@ -432,7 +396,6 @@ pub fn confirm_transaction(chain_type: &ChainTypes, binary_path: &str, password:
 
     while t0.elapsed() < two_minute {
         let values_info = info_wallet(chain_type, binary_path, password);
-        //if values_info[4] > 0.0 && values_info[5] > 0.0 {
         if values_info[5] > 0.0 {
             wait_for(5)
         } else {
@@ -528,14 +491,12 @@ pub fn get_number_transactions_txs(
 pub fn get_http_wallet(chain_type: &ChainTypes) -> String {
     // TODO get from wallet toml (api_listen_interface = "127.0.0.1")
     let ip = "127.0.0.1";
-    //http://127.0.0.1:23415
 
     // TODO get from wallet toml (api_listen_port = 23415)
     let port = match chain_type {
         ChainTypes::Floonet => "13415",
         _ => "23415",
     };
-    //let port = "23415";
 
     let http_ip = format!("http://{}:{}", ip, port);
     http_ip
@@ -619,7 +580,6 @@ pub fn get_height_from_list_peers(output: &Output) -> Vec<i32> {
             height_vec.push(b);
         }
     }
-    //let height_vec = output_msg_vec[1].split("\n").collect::<Vec<&str>>;
     height_vec
 }
 
@@ -662,7 +622,6 @@ pub fn get_height_from_status(output: &Output) -> i32 {
     let all_splits = output_msg_vec[1].split("\n").collect::<Vec<&str>>();
     let height: i32 = all_splits[0].parse().unwrap();
 
-    //let height_vec = output_msg_vec[1].split("\n").collect::<Vec<&str>>;
     height
 }
 
