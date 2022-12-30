@@ -1,4 +1,3 @@
-//use std::fmt;
 use async_trait::async_trait;
 use cucumber::{given, then, when, World, WorldInit};
 use std::convert::Infallible;
@@ -6,47 +5,17 @@ use std::{fs::remove_file, process::Child};
 extern crate dotenv;
 use dotenv::dotenv;
 use std::env;
-//use std::process::{Command, Output};
 
 //Testing
 use testing::{
-    create_wallet,
-    generate_file_name,
-    generate_response_file_name,
-    get_home_chain,
-    get_http_wallet,
-    //new_output,
-    get_number_transactions_txs,
-    get_passphrase,
-    get_test_configuration,
-    info_wallet,
-    new_child,
-    receive_finalize_coins,
-    send_coins_smallest,
-    spawn_miner,
-    spawn_network,
-    spawn_wallet_listen,
-    str_to_chain_type,
-    wait_for,
+    create_wallet, generate_file_name, generate_response_file_name, get_home_chain,
+    get_http_wallet, get_number_transactions_txs, get_passphrase, get_test_configuration,
+    info_wallet, new_child, receive_finalize_coins, send_coins_smallest, spawn_miner,
+    spawn_network, spawn_wallet_listen, str_to_chain_type, wait_for,
 };
 
 // Epic Server
 use epic_core::global::ChainTypes;
-
-//Epic Wallet
-//use epic_wallet_config::config::initial_setup_wallet;
-
-//impl fmt::Debug for WalletWorld {
-//    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//        write!(f, "chain_type :{:?}", self.wallet_binary)
-//    }
-//}
-
-//impl fmt::Debug for WalletInformation {
-//    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//        write!(f, "chain_type :{:?}", self.sent_tx)
-//    }
-//}
 
 impl std::default::Default for WalletWorld {
     fn default() -> WalletWorld {
@@ -223,8 +192,6 @@ fn check_coins_in_wallet(world: &mut WalletWorld) {
 
 #[when(expr = "I send {word} coins with {word} method")]
 fn send_coins(world: &mut WalletWorld, amount: String, method: String) {
-    // TODO destination (File and HTTP methods)
-
     // Update transactions information in WalletInformation
     let transaction_info =
         get_number_transactions_txs(&world.chain_type, &world.wallet_binary, &world.password);
@@ -401,8 +368,6 @@ fn check_exist_new_db_file(world: &mut WalletWorld) {
     //home_dir.push("lmdb");
     assert!(home_dir.is_dir())
 }
-
-//I finalize the emoji transaction
 
 //#[tokio::main]
 fn main() {

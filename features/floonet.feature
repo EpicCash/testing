@@ -1,9 +1,5 @@
 Feature: There is a need to validate the floonet environment
 
-	#"/home/jualns/Desktop/epic/target/release/epic"
-	#"/home/ba/Desktop/EpicV3/epic-wallet/target/release/epic-wallet"
-	#"/home/ba/Desktop/epic-miner/target/debug/epic-miner"
-
 	Background: Defining settings
 		Given Define "epic-server" binary
 		And Define "epic-wallet" binary

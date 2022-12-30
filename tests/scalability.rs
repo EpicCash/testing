@@ -9,7 +9,6 @@ use std::{fs::remove_file, process::Child};
 extern crate dotenv;
 use dotenv::dotenv;
 use std::env;
-//use std::process::{Command, Output};
 
 //Testing
 use testing::{
@@ -21,21 +20,6 @@ use testing::{
 
 // Epic Server
 use epic_core::global::ChainTypes;
-
-//Epic Wallet
-//use epic_wallet_config::config::initial_setup_wallet;
-
-//impl fmt::Debug for TransWorld {
-//    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//        write!(f, "chain_type :{:?}", self.wallet_binary)
-//    }
-//}
-
-//impl fmt::Debug for WalletInformation {
-//    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//        write!(f, "chain_type :{:?}", self.sent_tx)
-//    }
-//}
 
 #[warn(unused_assignments)]
 
@@ -140,7 +124,6 @@ impl fmt::Display for PackTransaction {
     }
 }
 
-//Given The epic-server binary is at /home/ba/Desktop/EpicV3/epic/target/release/epic
 #[given(expr = "Define {string} binary")]
 fn set_binary(world: &mut TransWorld, epic_sys: String) {
     match epic_sys.as_str() {
@@ -418,7 +401,6 @@ fn transactions_work(world: &mut TransWorld) {
         sent_path: String::new(),
         receive_path: String::new(),
     };
-    //let int_number = number_transactions/2;
 
     // Sent tx
     assert_eq!(
