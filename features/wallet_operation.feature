@@ -16,6 +16,7 @@ Feature: Verify the longevity of a wallet, checking information in the chain ref
     Then I run info command
     And I check if wallet change to new DB
 
+# Scenario planned but not yet done
 #@serial
 #Scenario: Testing the operation of a new wallet
 #  Given I initiate a wallet
