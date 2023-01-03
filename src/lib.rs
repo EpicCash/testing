@@ -422,7 +422,7 @@ pub fn info_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) -
 pub fn confirm_transaction(chain_type: &ChainTypes, binary_path: &str, password: &str) {
     // time dependence
     let t0 = Instant::now();
-    let n_minute = Duration::from_secs(300);
+    let n_minute = Duration::from_secs(5 * 60);
 
     while t0.elapsed() < n_minute {
         let values_info = info_wallet(chain_type, binary_path, password);
