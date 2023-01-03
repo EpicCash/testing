@@ -8,14 +8,15 @@ use dotenv::dotenv;
 use std::env;
 use std::env::current_dir;
 use std::fs::{remove_dir_all, remove_file};
+use std::process::{Command, Output};
 
 //Testing
 use testing::{
     confirm_transaction, create_wallet, generate_file_name, generate_response_file_name,
     get_home_chain, get_http_wallet, get_number_transactions_txs, get_passphrase,
     get_test_configuration, info_wallet, new_child, receive_finalize_coins, recover_wallet_shell,
-    send_coins_smallest, spawn_miner, spawn_network, spawn_wallet_listen, str_to_chain_type,
-    wait_for,
+    remove_wallet_path, send_coins_smallest, spawn_miner, spawn_network, spawn_wallet_listen,
+    str_to_chain_type, wait_for,
 };
 
 // Epic Server
@@ -88,7 +89,7 @@ impl std::default::Default for InfoWallet {
 impl std::convert::From<Vec<f32>> for InfoWallet {
     fn from(item: Vec<f32>) -> Self {
         // code to convert the vector into an instance of your struct goes here
-        if item.len() > 0 {
+        if item.len() > 6 {
             InfoWallet {
                 chain_height: item[0],
                 confirmed_total: item[1],
@@ -97,6 +98,17 @@ impl std::convert::From<Vec<f32>> for InfoWallet {
                 awaiting_finalization: item[4],
                 locked_by_previus_transaction: item[5],
                 currently_spendable: item[6],
+            }
+        } else if item.len() == 6 {
+            // When a wallet does not have mined blocks, the `info` will not have the coins in `Immature Coinbase`
+            InfoWallet {
+                chain_height: item[0],
+                confirmed_total: item[1],
+                immature_coinbase: 0.0,
+                awaiting_confirmation: item[2],
+                awaiting_finalization: item[3],
+                locked_by_previus_transaction: item[4],
+                currently_spendable: item[5],
             }
         } else {
             InfoWallet::default()
@@ -167,11 +179,13 @@ fn using_network(world: &mut WalletWorld, str_chain: String) {
 
     // NEED CREATE WALLET BEFORE SPAWN SERVER, Unable to delete folder if server is on
     // run wallet and save on world
-    let _wallet_init = create_wallet(
+    let wallet_init = create_wallet(
         &world.chain_type,
         world.wallet_binary.as_str(),
         world.password.as_str(),
     );
+
+    world.passphrase = get_passphrase(&wallet_init);
 }
 
 #[then(expr = "I run and save info command")]
@@ -182,24 +196,17 @@ fn info_save(world: &mut WalletWorld) {
 
 #[when(expr = "I delete the wallet folder")]
 fn delete_wallet_data(world: &mut WalletWorld) {
-    let dir = &world.wallet_binary;
-    match remove_dir_all(dir) {
-        Ok(()) => println!("Successfully deleted directory and all its contents"),
-        Err(e) => println!("Error deleting directory: {}", e),
-    }
+    remove_wallet_path(&world.chain_type);
 }
 
-#[when(expr = "I make the recovery")]
+#[when(expr = "I make the recover in my wallet")]
 fn wallet_recover(world: &mut WalletWorld) {
-    let shell_path = env::var("RECOVER_SHELL").unwrap();
-    let result_recover = recover_wallet_shell(
+    recover_wallet_shell(
         &world.chain_type,
         &world.wallet_binary,
-        &shell_path,
         &world.password,
         &world.passphrase,
     );
-    assert!(result_recover, "Can't recover the wallet!")
 }
 
 #[then(expr = "I have the same information")]
@@ -261,12 +268,19 @@ fn start_child_general(world: &mut WalletWorld, start_stop: String, epic_system:
     }
 }
 
-#[when("I mine some blocks into my wallet")]
-fn mine_some_coins(world: &mut WalletWorld) {
+#[when(expr = "I mine {word} coins into my wallet")]
+fn mine_some_coins(world: &mut WalletWorld, quantity: String) {
     // TODO - Wait for 5~10 blocks
     let mut info = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
     let mut current_spendable = info.last().expect("Can't get the current spendable!");
-    while current_spendable == &0.0 {
+    let low_limit = match quantity.as_str() {
+        "some" => 0.0,
+        _ => {
+            let number_quant: f32 = quantity.parse().expect("Unable to parse String as Float");
+            number_quant
+        }
+    };
+    while current_spendable <= &low_limit {
         wait_for(15);
         info = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
         current_spendable = info.last().expect("Can't get the current spendable!");
@@ -381,13 +395,6 @@ fn send_coins(world: &mut WalletWorld, amount: String, method: String) {
     assert!(send_output.status.success())
 }
 
-// I make a recovery
-#[when(expr = "I make a recovery")]
-fn recovery_process(world: &mut WalletWorld) {
-    //let passphrase = world.passphrase;
-    ()
-}
-
 //I have 2 new transactions in txs
 #[then(expr = "I have {int} new transactions in txs")]
 fn check_new_transactions(world: &mut WalletWorld, number_transactions: u32) {
@@ -487,5 +494,5 @@ fn check_exist_new_db_file(world: &mut WalletWorld) {
 fn main() {
     dotenv().ok();
     println!("Remember to close all running epic systems before running the test");
-    futures::executor::block_on(WalletWorld::run("./features/transactions.feature"));
+    futures::executor::block_on(WalletWorld::run("./features/wallet_operation.feature"));
 }
