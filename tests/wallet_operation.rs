@@ -52,6 +52,8 @@ impl std::default::Default for WalletInformation {
     }
 }
 
+/// This structure stores the number of `SentTx`, `ReceivedTx`, and `ConfirmedCoinbase` inside the `epic-wallet txs` command.
+/// sent_path and receive_path are for specific uses of the `emoji` and `file` send methods which need a send, a receive, and a finalize information;
 #[derive(Debug)]
 pub struct WalletInformation {
     pub sent_tx: u32,
@@ -61,6 +63,7 @@ pub struct WalletInformation {
     pub receive_path: String,
 }
 
+/// This structure stores the `info` command information in an organized way. Mainly to facilitate the comparison.
 #[derive(Debug, PartialEq)]
 pub struct InfoWallet {
     pub chain_height: f32,
@@ -115,8 +118,13 @@ impl std::convert::From<Vec<f32>> for InfoWallet {
         }
     }
 }
-// These `Cat` definitions would normally be inside your project's code,
-// not test code, but we create them here for the show case.
+/// This structure is the Cucumber's World, all the information it will use between each step must be stored in this structure.
+/// Here we have the following, chain_type is whether we are using `usernet`, `floonet`, or other.
+/// server, wallet and miner keep the child processes responsible for continuing to run as long as we want.
+/// server_binary, wallet_binary and miner_binary is to run the 3 services wherever we want.
+/// password and passphrase are for using the wallet and its activities.
+/// transactions is the struct that stores information about transactions.
+/// info_command stores the fields of the `epic-wallet info` command
 #[derive(Debug, WorldInit)]
 pub struct WalletWorld {
     pub chain_type: ChainTypes,
@@ -132,8 +140,8 @@ pub struct WalletWorld {
     pub info_command: InfoWallet,
 }
 
-// `World` needs to be implemented, so Cucumber knows how to construct it
-// for each scenario.
+/// `World` needs to be implemented, so Cucumber knows how to construct it
+/// for each scenario.
 #[async_trait(?Send)]
 impl World for WalletWorld {
     // We do require some error type.
