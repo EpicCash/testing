@@ -2,25 +2,17 @@ Feature: Verify the longevity of a wallet, checking information in the chain ref
 
   Background: Defining settings
     Given Define "epic-server" binary
-    # New version of wallet with SQLite
     And Define "epic-wallet" binary
-    # Old version of wallet LMDB
-    And Define "epic-wallet-300" binary
     And Define "epic-miner" binary
     And I am using the "usernet" network
     When I start the node with policy "onlyrandomx"
-
-  #@serial
-  #Scenario: Test if wallet change itself to new DB
-  #  Given I have a wallet in LMDB
-  #  Then I run info command
-  #  And I check if wallet change to new DB
 
   @serial
   Scenario: Testing the operation of a new wallet
     When I start the wallet
     And I start the miner
-    And I mine some blocks into my wallet
+    # 19 >= 0.001 + 3 + 15
+    And I mine 19 coins into my wallet
     # Test a float value < 1.
     When I send 0.001 coins with http method
     # Test an amount smaller than a block, < approximately 14.52 coins.
@@ -32,5 +24,12 @@ Feature: Verify the longevity of a wallet, checking information in the chain ref
     And I stop the wallet
     Then I run and save info command
     When I delete the wallet folder
-    When I make the recovery
+    When I make the recover in my wallet
     Then I have the same information
+    When I stop the node
+
+  @serial
+  Scenario: Test if wallet change itself to new DB
+    Given I have a wallet in LMDB
+    Then I run info command
+    And I check if wallet change to new DB

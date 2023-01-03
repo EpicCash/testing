@@ -345,7 +345,6 @@ fn send_n_coins(world: &mut TransWorld, num_transactions: i32, method: String) {
             &world.password,
             &amount.parse().expect("Can't convert amount to f32!"),
         );
-        println!("\n SEND {:?} -- Amount {:?}\n", k, amount);
 
         // If method is HTTP or file, send command needs a destination
         let dest = get_http_wallet(&world.chain_type);
