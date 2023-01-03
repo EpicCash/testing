@@ -47,6 +47,7 @@ Feature: Test the methods of transactions and interactions between send, receive
     Then I have 2 new transactions in txs
     And I kill all running epic systems
 
+# Scenario planned but not yet done
 #Scenario:  Test Keybase/TOR send methods
 #  Given I have a testing chain
 #  And I have a wallet with <2> coins

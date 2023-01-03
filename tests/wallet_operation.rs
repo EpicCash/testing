@@ -1,17 +1,21 @@
 use async_trait::async_trait;
 use cucumber::{given, then, when, World, WorldInit};
 use std::convert::Infallible;
-use std::{fs::remove_file, process::Child};
+use std::path::PathBuf;
+use std::process::Child;
 extern crate dotenv;
 use dotenv::dotenv;
 use std::env;
+use std::env::current_dir;
+use std::fs::{remove_dir_all, remove_file};
 
 //Testing
 use testing::{
-    create_wallet, generate_file_name, generate_response_file_name, get_home_chain,
-    get_http_wallet, get_number_transactions_txs, get_passphrase, get_test_configuration,
-    info_wallet, new_child, receive_finalize_coins, send_coins_smallest, spawn_miner,
-    spawn_network, spawn_wallet_listen, str_to_chain_type, wait_for,
+    confirm_transaction, create_wallet, generate_file_name, generate_response_file_name,
+    get_home_chain, get_http_wallet, get_number_transactions_txs, get_passphrase,
+    get_test_configuration, info_wallet, new_child, receive_finalize_coins, recover_wallet_shell,
+    send_coins_smallest, spawn_miner, spawn_network, spawn_wallet_listen, str_to_chain_type,
+    wait_for,
 };
 
 // Epic Server
@@ -30,6 +34,7 @@ impl std::default::Default for WalletWorld {
             wallet: new_child(),
             miner: new_child(),
             transactions: WalletInformation::default(),
+            info_command: InfoWallet::default(),
         }
     }
 }
@@ -55,6 +60,49 @@ pub struct WalletInformation {
     pub receive_path: String,
 }
 
+#[derive(Debug, PartialEq)]
+pub struct InfoWallet {
+    pub chain_height: f32,
+    pub confirmed_total: f32,
+    pub immature_coinbase: f32,
+    pub awaiting_confirmation: f32,
+    pub awaiting_finalization: f32,
+    pub locked_by_previus_transaction: f32,
+    pub currently_spendable: f32,
+}
+
+impl std::default::Default for InfoWallet {
+    fn default() -> InfoWallet {
+        InfoWallet {
+            chain_height: 0.0,
+            confirmed_total: 0.0,
+            immature_coinbase: 0.0,
+            awaiting_confirmation: 0.0,
+            awaiting_finalization: 0.0,
+            locked_by_previus_transaction: 0.0,
+            currently_spendable: 0.0,
+        }
+    }
+}
+
+impl std::convert::From<Vec<f32>> for InfoWallet {
+    fn from(item: Vec<f32>) -> Self {
+        // code to convert the vector into an instance of your struct goes here
+        if item.len() > 0 {
+            InfoWallet {
+                chain_height: item[0],
+                confirmed_total: item[1],
+                immature_coinbase: item[2],
+                awaiting_confirmation: item[3],
+                awaiting_finalization: item[4],
+                locked_by_previus_transaction: item[5],
+                currently_spendable: item[6],
+            }
+        } else {
+            InfoWallet::default()
+        }
+    }
+}
 // These `Cat` definitions would normally be inside your project's code,
 // not test code, but we create them here for the show case.
 #[derive(Debug, WorldInit)]
@@ -69,6 +117,7 @@ pub struct WalletWorld {
     pub wallet_binary: String,
     pub miner_binary: String,
     pub transactions: WalletInformation,
+    pub info_command: InfoWallet,
 }
 
 // `World` needs to be implemented, so Cucumber knows how to construct it
@@ -91,6 +140,7 @@ impl World for WalletWorld {
             wallet: new_child(),
             miner: new_child(),
             transactions: WalletInformation::default(),
+            info_command: InfoWallet::default(),
         })
     }
 }
@@ -117,51 +167,115 @@ fn using_network(world: &mut WalletWorld, str_chain: String) {
 
     // NEED CREATE WALLET BEFORE SPAWN SERVER, Unable to delete folder if server is on
     // run wallet and save on world
-    let wallet_init = create_wallet(
+    let _wallet_init = create_wallet(
         &world.chain_type,
         world.wallet_binary.as_str(),
         world.password.as_str(),
     );
-
-    // run server and save on world
-    world.server = spawn_network(
-        &world.chain_type,
-        world.server_binary.as_str(),
-        Some(&str_chain),
-    );
-
-    // save passphrase on world
-    world.passphrase = get_passphrase(&wallet_init);
-
-    // save the wallet_listen process on world
-    world.wallet = spawn_wallet_listen(
-        &world.chain_type,
-        world.wallet_binary.as_str(),
-        world.password.as_str(),
-    );
-
-    // Run the miner
-    world.miner = spawn_miner(&world.miner_binary);
 }
 
-//I initiate a wallet|miner
-#[given(expr = "I initiate a {word}")]
-fn init_wallet(world: &mut WalletWorld, service: String) {
-    match service.as_str() {
-        "wallet" => {
-            // save the wallet_listen process on world
-            world.wallet = spawn_wallet_listen(
-                &world.chain_type,
-                world.wallet_binary.as_str(),
-                world.password.as_str(),
-            );
-        }
-        "miner" => {
-            // Run the miner
-            world.miner = spawn_miner(&world.miner_binary);
-        }
-        _ => panic!("Can't initiate {service}!"),
+#[then(expr = "I run and save info command")]
+fn info_save(world: &mut WalletWorld) {
+    let info_vec = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
+    world.info_command = InfoWallet::from(info_vec);
+}
+
+#[when(expr = "I delete the wallet folder")]
+fn delete_wallet_data(world: &mut WalletWorld) {
+    let dir = &world.wallet_binary;
+    match remove_dir_all(dir) {
+        Ok(()) => println!("Successfully deleted directory and all its contents"),
+        Err(e) => println!("Error deleting directory: {}", e),
     }
+}
+
+#[when(expr = "I make the recovery")]
+fn wallet_recover(world: &mut WalletWorld) {
+    let shell_path = env::var("RECOVER_SHELL").unwrap();
+    let result_recover = recover_wallet_shell(
+        &world.chain_type,
+        &world.wallet_binary,
+        &shell_path,
+        &world.password,
+        &world.passphrase,
+    );
+    assert!(result_recover, "Can't recover the wallet!")
+}
+
+#[then(expr = "I have the same information")]
+fn compare_info(world: &mut WalletWorld) {
+    let info_now = InfoWallet::from(info_wallet(
+        &world.chain_type,
+        &world.wallet_binary,
+        &world.password,
+    ));
+    assert_eq!(world.info_command, info_now)
+}
+
+#[when(expr = "I start the node with policy {string}")]
+fn start_child_system(world: &mut WalletWorld, enter_policy: String) {
+    if enter_policy.len() == 0 {
+        world.server = spawn_network(&world.chain_type, world.server_binary.as_str(), None);
+    } else {
+        let mut poly = String::from("--");
+        poly.push_str(enter_policy.as_str());
+        // run server and save on world
+        world.server = spawn_network(
+            &world.chain_type,
+            world.server_binary.as_str(),
+            Some(poly.as_str()),
+        );
+    };
+    wait_for(10)
+}
+
+// I start/stop the wallet/miner
+#[when(expr = "I {word} the {word}")]
+fn start_child_general(world: &mut WalletWorld, start_stop: String, epic_system: String) {
+    match start_stop.as_str() {
+        "start" => {
+            match epic_system.as_str() {
+                "miner" => {
+                    // Run the miner
+                    world.miner = spawn_miner(&world.miner_binary);
+                }
+                "wallet" => {
+                    // save the wallet_listen process on world
+                    world.wallet = spawn_wallet_listen(
+                        &world.chain_type,
+                        world.wallet_binary.as_str(),
+                        world.password.as_str(),
+                    );
+                }
+                _ => panic!("Specified system does not exist to start!"),
+            };
+            wait_for(2)
+        }
+        "stop" => match epic_system.as_str() {
+            "node" => world.server.kill().expect("Server wasn't running"),
+            "miner" => world.miner.kill().expect("Miner wasn't running"),
+            "wallet" => world.wallet.kill().expect("Wallet wasn't running"),
+            _ => panic!("Specified system does not exist to kill!"),
+        },
+        _ => panic!("Specified command does not exist, try start or stop!"),
+    }
+}
+
+#[when("I mine some blocks into my wallet")]
+fn mine_some_coins(world: &mut WalletWorld) {
+    // TODO - Wait for 5~10 blocks
+    let mut info = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
+    let mut current_spendable = info.last().expect("Can't get the current spendable!");
+    while current_spendable == &0.0 {
+        wait_for(15);
+        info = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
+        current_spendable = info.last().expect("Can't get the current spendable!");
+    }
+}
+
+#[then(expr = "I await confirm the transaction")]
+fn await_finalization(world: &mut WalletWorld) {
+    confirm_transaction(&world.chain_type, &world.wallet_binary, &world.password)
 }
 
 // I mine 11 blocks and stop miner

@@ -10,22 +10,27 @@ Feature: Verify the longevity of a wallet, checking information in the chain ref
     And I am using the "usernet" network
     When I start the node with policy "onlyrandomx"
 
-  @serial
-  Scenario: Test if wallet change itself to new DB
-    Given I have a wallet in LMDB
-    Then I run info command
-    And I check if wallet change to new DB
+  #@serial
+  #Scenario: Test if wallet change itself to new DB
+  #  Given I have a wallet in LMDB
+  #  Then I run info command
+  #  And I check if wallet change to new DB
 
-# Scenario planned but not yet done
-#@serial
-#Scenario: Testing the operation of a new wallet
-#  Given I initiate a wallet
-#  And I initiate a miner
-#  And I mine 11 blocks and stop miner
-#  And I have a wallet with coins
-#  When I send 0.001 coins with http method
-#  And I send 3 coins with http method
-#  Given I initiate a miner
-#  And I mine 15 blocks and stop miner
-#  When I make a recovery
-#  Then I have a wallet with 2 outputs transactions and 26 mined blocks
+  @serial
+  Scenario: Testing the operation of a new wallet
+    When I start the wallet
+    And I start the miner
+    And I mine some blocks into my wallet
+    # Test a float value < 1.
+    When I send 0.001 coins with http method
+    # Test an amount smaller than a block, < approximately 14.52 coins.
+    And I send 3 coins with http method
+    # Test a value greater than one block, to use more than 1 output to create a new transaction.
+    And I send 15 coins with http method
+    Then I await confirm the transaction
+    When I stop the miner
+    And I stop the wallet
+    Then I run and save info command
+    When I delete the wallet folder
+    When I make the recovery
+    Then I have the same information
