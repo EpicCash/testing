@@ -4,6 +4,7 @@ use chrono::{
     Local,
 };
 use dirs::home_dir;
+use expectrl;
 use log::Level;
 use rand::{self, distributions::Uniform, Rng};
 use std::fs::remove_dir_all;
@@ -202,7 +203,7 @@ pub fn get_passphrase(output: &Output) -> String {
 
     // Split the message into a vector
     let output_msg_vec = output_msg.split("\n").collect::<Vec<&str>>();
-    println!("OUT {:#?}", output_msg_vec);
+
     // If we got a error on init a new wallet, the vector will have only 4 element
     let result = match output_msg_vec.len() > 5 {
         true => output_msg_vec[3].to_owned(),
@@ -356,25 +357,30 @@ pub fn send_coins_smallest(
 pub fn recover_wallet_shell(
     chain_type: &ChainTypes,
     wallet_binary_path: &str,
-    shell_path: &str,
     password: &str,
     passphrase: &str,
-) -> bool {
-    let recover = match chain_type {
-        ChainTypes::Floonet => Command::new(shell_path)
-            .args([password, wallet_binary_path, "--floonet", passphrase])
-            .output()
-            .expect("Failed run recover.sh"),
-        _ => Command::new(shell_path)
-            .args([password, wallet_binary_path, "--usernet", passphrase])
-            .output()
-            .expect("Failed run recover.sh"),
+) {
+    let network = match chain_type {
+        ChainTypes::Floonet => "--floonet",
+        ChainTypes::UserTesting => "--usernet",
+        ChainTypes::Mainnet => "",
+        _ => panic!("Specified network does not exist!"),
     };
 
-    // binary to string
-    let recover_str = String::from_utf8_lossy(&recover.stdout).into_owned();
+    let command = format!("{} {} -p {} init -r", wallet_binary_path, network, password);
 
-    recover_str.contains("successfully")
+    let mut recover_process = expectrl::spawn(command).expect("Can't run init -r");
+    recover_process
+        .expect("Please enter your recovery phrase:")
+        .expect("Can't get the recovery mesage");
+    recover_process
+        .send_line(passphrase)
+        .expect("Can't communicate to the child process");
+    recover_process
+        .expect("Command 'init' completed successfully")
+        .expect("Can't finish recovery process");
+
+    recover_process.exit(true);
 }
 
 /// Run ./epic-wallet --network and take all values in info
