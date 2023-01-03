@@ -353,11 +353,35 @@ pub fn send_coins_smallest(
     output
 }
 
-// Run ./epic-wallet --network and take all values in info
-// return Vec<f32> with 7 values where the values are
-// [chain_height, Confirmed Total, Immature Coinbase,
-// Awaiting Confirmation, Awaiting Finalization, Locked by previous transaction,
-// Currently Spendable]
+pub fn recover_wallet_shell(
+    chain_type: &ChainTypes,
+    wallet_binary_path: &str,
+    shell_path: &str,
+    password: &str,
+    passphrase: &str,
+) -> bool {
+    let recover = match chain_type {
+        ChainTypes::Floonet => Command::new(shell_path)
+            .args([password, wallet_binary_path, "--floonet", passphrase])
+            .output()
+            .expect("Failed run recover.sh"),
+        _ => Command::new(shell_path)
+            .args([password, wallet_binary_path, "--usernet", passphrase])
+            .output()
+            .expect("Failed run recover.sh"),
+    };
+
+    // binary to string
+    let recover_str = String::from_utf8_lossy(&recover.stdout).into_owned();
+
+    recover_str.contains("successfully")
+}
+
+/// Run ./epic-wallet --network and take all values in info
+/// return Vec<f32> with 7 values where the values are
+/// \[chain_height, Confirmed Total, Immature Coinbase,
+/// Awaiting Confirmation, Awaiting Finalization, Locked by previous transaction,
+/// Currently Spendable\]
 pub fn info_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) -> Vec<f32> {
     let info = match chain_type {
         ChainTypes::UserTesting => Command::new(binary_path)
@@ -392,12 +416,12 @@ pub fn info_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) -
 pub fn confirm_transaction(chain_type: &ChainTypes, binary_path: &str, password: &str) {
     // time dependence
     let t0 = Instant::now();
-    let two_minute = Duration::from_secs(120);
+    let n_minute = Duration::from_secs(5);
 
-    while t0.elapsed() < two_minute {
+    while t0.elapsed() < n_minute {
         let values_info = info_wallet(chain_type, binary_path, password);
         if values_info[5] > 0.0 {
-            wait_for(5)
+            wait_for(15)
         } else {
             break;
         }
