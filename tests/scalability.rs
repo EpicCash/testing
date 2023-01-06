@@ -1,131 +1,25 @@
-//use std::fmt;
-use async_trait::async_trait;
-use cucumber::{given, then, when, World, WorldInit};
-use std::convert::Infallible;
-use std::fmt;
-use std::sync::Arc;
-use std::time::{Duration, Instant};
-use std::{fs::remove_file, process::Child};
+use cucumber::{given, then, when, WorldInit};
+use std::fs::remove_file;
+use std::time::Instant;
+use testing::types::{InfoWallet, OutputList, PackTransaction, TestingWorld, WalletInformation};
 extern crate dotenv;
 use dotenv::dotenv;
 use std::env;
 
-//Testing
-use testing::{
-    check_spendable, confirm_transaction, create_wallet, generate_vec_to_sent, get_http_wallet,
-    get_number_transactions_txs, get_test_configuration, info_wallet, new_child,
-    receive_finalize_coins, send_coins_smallest, spawn_miner, spawn_network, spawn_wallet_listen,
+use testing::commands::{
+    check_spendable, confirm_transaction, create_wallet, get_number_outputs,
+    get_number_transactions_txs, get_restore_command, info_wallet, receive_finalize_coins,
+    recover_wallet_shell, remove_wallet_path, scan_wallet, send_coins_smallest, spawn_miner,
+    spawn_network, spawn_wallet_listen,
+};
+use testing::utils::{
+    generate_vec_to_sent, get_http_wallet, get_passphrase, get_test_configuration,
     str_to_chain_type, wait_for,
 };
 
-// Epic Server
-use epic_core::global::ChainTypes;
-
 #[warn(unused_assignments)]
-
-impl std::default::Default for TransWorld {
-    fn default() -> TransWorld {
-        TransWorld {
-            chain_type: ChainTypes::UserTesting,
-            password: String::from("1"),
-            passphrase: String::new(),
-            server_binary: String::new(),
-            wallet_binary: String::new(),
-            miner_binary: String::new(),
-            server: new_child(),
-            wallet: new_child(),
-            miner: new_child(),
-            transactions: WalletInformation::default(),
-            dur_transactions: Vec::new(),
-            n_transactions: 1,
-        }
-    }
-}
-
-impl std::default::Default for WalletInformation {
-    fn default() -> WalletInformation {
-        WalletInformation {
-            sent_tx: 0 as u32,
-            received_tx: 0 as u32,
-            confirmed_coinbase: 0 as u32,
-            sent_path: String::new(),
-            receive_path: String::new(),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct WalletInformation {
-    pub sent_tx: u32,
-    pub received_tx: u32,
-    pub confirmed_coinbase: u32,
-    pub sent_path: String,
-    pub receive_path: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct PackTransaction {
-    pub number_transactions: i32,
-    pub duration_time: Vec<Duration>,
-    pub vec_amount: Vec<String>,
-}
-
-// These `Cat` definitions would normally be inside your project's code,
-// not test code, but we create them here for the show case.
-#[derive(Debug, WorldInit)]
-pub struct TransWorld {
-    pub chain_type: ChainTypes,
-    pub server: Child,
-    pub wallet: Child,
-    pub miner: Child,
-    pub password: String,
-    pub passphrase: String, // only for recovery test
-    pub server_binary: String,
-    pub wallet_binary: String,
-    pub miner_binary: String,
-    pub transactions: WalletInformation,
-    pub dur_transactions: Vec<Duration>,
-    pub n_transactions: i32,
-}
-
-// `World` needs to be implemented, so Cucumber knows how to construct it
-// for each scenario.
-#[async_trait(?Send)]
-impl World for TransWorld {
-    // We do require some error type.
-    type Error = Infallible;
-
-    async fn new() -> Result<Self, Infallible> {
-        //Ok(Self::default())
-        Ok(Self {
-            chain_type: ChainTypes::UserTesting,
-            password: String::from("1"),
-            passphrase: String::new(),
-            server_binary: String::new(),
-            wallet_binary: String::new(),
-            miner_binary: String::new(),
-            server: new_child(),
-            wallet: new_child(),
-            miner: new_child(),
-            transactions: WalletInformation::default(),
-            dur_transactions: Vec::new(),
-            n_transactions: 1,
-        })
-    }
-}
-
-impl fmt::Display for PackTransaction {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "number_transactions: {:?}\nduration_time: {:?}\nvec_amount: {:?})",
-            self.number_transactions, self.duration_time, self.vec_amount
-        )
-    }
-}
-
 #[given(expr = "Define {string} binary")]
-fn set_binary(world: &mut TransWorld, epic_sys: String) {
+fn set_binary(world: &mut TestingWorld, epic_sys: String) {
     match epic_sys.as_str() {
         "epic-server" => world.server_binary = env::var("EPIC_SERVER").unwrap(),
         "epic-wallet" => world.wallet_binary = env::var("EPIC_WALLET").unwrap(),
@@ -136,7 +30,7 @@ fn set_binary(world: &mut TransWorld, epic_sys: String) {
 }
 
 #[given(expr = "I am using the {string} network")]
-fn using_network(world: &mut TransWorld, str_chain: String) {
+fn using_network(world: &mut TestingWorld, str_chain: String) {
     let chain_t = str_to_chain_type(&str_chain);
 
     world.chain_type = chain_t;
@@ -144,18 +38,48 @@ fn using_network(world: &mut TransWorld, str_chain: String) {
     get_test_configuration(&world.chain_type);
     // Wait the epic-servet.toml work
     wait_for(5);
+}
 
+// I use a stored/new wallet
+#[given(expr = "I use a {string} wallet")]
+fn using_wallet(world: &mut TestingWorld, type_wallet: String) {
     // NEED CREATE WALLET BEFORE SPAWN SERVER, Unable to delete folder if server is on
-    // run wallet and save on world
-    let _wallet_init = create_wallet(
-        &world.chain_type,
-        world.wallet_binary.as_str(),
-        world.password.as_str(),
-    );
+    // run wallet and save on world]
+    assert_eq!("stored-huge", type_wallet.as_str());
+    match type_wallet.as_str() {
+        "stored-huge" | "stored-tiny" => {
+            let wallet_restore = get_restore_command(
+                &world.chain_type,
+                world.wallet_binary.as_str(),
+                world.password.as_str(),
+            );
+            let passphrase = get_passphrase(&wallet_restore);
+            assert!(passphrase.len() > 0, "Error, passphrase is: {passphrase}");
+            world.passphrase = passphrase;
+            //todo!("Copy and paste the chain_data and wallet_data into .epic/chain_type folder")
+        }
+        "new" => {
+            let wallet_init = create_wallet(
+                &world.chain_type,
+                world.wallet_binary.as_str(),
+                world.password.as_str(),
+            );
+
+            world.passphrase = get_passphrase(&wallet_init);
+        }
+        "passphrase-huge" | "passphrase-tiny" => {
+            todo!(
+                "Copy and paste the chain_data into .epic/chain_type folder
+				Open a file that saves a passphrase of huge/tiny wallet and read.
+				Run recovery process"
+            )
+        }
+        _ => panic!("This {type_wallet} type of wallet has not yet been implemented!"),
+    };
 }
 
 #[when(expr = "I start the node with policy {string}")]
-fn start_child_system(world: &mut TransWorld, enter_policy: String) {
+fn start_child_system(world: &mut TestingWorld, enter_policy: String) {
     if enter_policy.len() == 0 {
         world.server = spawn_network(&world.chain_type, world.server_binary.as_str(), None);
     } else {
@@ -173,7 +97,7 @@ fn start_child_system(world: &mut TransWorld, enter_policy: String) {
 
 // I start/stop the wallet/miner
 #[when(expr = "I {word} the {word}")]
-fn start_child_general(world: &mut TransWorld, start_stop: String, epic_system: String) {
+fn start_child_general(world: &mut TestingWorld, start_stop: String, epic_system: String) {
     match start_stop.as_str() {
         "start" => {
             match epic_system.as_str() {
@@ -201,10 +125,12 @@ fn start_child_general(world: &mut TransWorld, start_stop: String, epic_system: 
         },
         _ => panic!("Specified command does not exist, try start or stop!"),
     }
+    // for security
+    wait_for(5);
 }
 
 #[when("I mine some blocks into my wallet")]
-fn mine_some_coins(world: &mut TransWorld) {
+fn mine_some_coins(world: &mut TestingWorld) {
     // TODO - Wait for 5~10 blocks
     let mut info = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
     let mut current_spendable = info.last().expect("Can't get the current spendable!");
@@ -216,20 +142,158 @@ fn mine_some_coins(world: &mut TransWorld) {
 }
 
 #[given(expr = "I have a wallet with coins")]
-fn check_coins_in_wallet(world: &mut TransWorld) {
+fn check_coins_in_wallet(world: &mut TestingWorld) {
     let info = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
     let current_spendable = info.last().expect("Can't get the current spendable!");
     assert!(current_spendable > &0.0)
 }
 
+#[then(expr = "I run and save {word} command")]
+fn command_save(world: &mut TestingWorld, wallet_command: String) {
+    match wallet_command.as_str() {
+        "info" => {
+            let info_vec = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
+            println!("\nSAVE INFO: {:#?}", info_vec);
+            world.info_command = InfoWallet::from(info_vec);
+        }
+        "txs" => {
+            let txs_vec = get_number_transactions_txs(
+                &world.chain_type,
+                &world.wallet_binary,
+                &world.password,
+            );
+            println!("\nSAVE TXS: {:#?}", txs_vec);
+            world.txs_command = WalletInformation::from(txs_vec);
+        }
+        "outputs" | "outputs_full_history" => {
+            // if we want full_history
+            let show_full_history = wallet_command.as_str() == "outputs_full_history";
+
+            let outputs_vec = get_number_outputs(
+                &world.chain_type,
+                &world.wallet_binary,
+                &world.password,
+                show_full_history,
+            );
+            println!("\nSAVE OUTPUTS: {:#?}", outputs_vec);
+            world.outputs_command = OutputList::from(outputs_vec);
+        }
+
+        _ => println!("{wallet_command} is not a wallet command or not implemented yet"),
+    };
+}
+
+// I have the same information
+#[then(expr = "I have the same {word}")]
+fn compare_info(world: &mut TestingWorld, wallet_command: String) {
+    match wallet_command.as_str() {
+        "information" | "info" => {
+            let info_now = InfoWallet::from(info_wallet(
+                &world.chain_type,
+                &world.wallet_binary,
+                &world.password,
+            ));
+            println!(
+                "\nINFO COMP: \nBefore: {:#?} \n After {:#?}",
+                world.info_command, info_now
+            );
+            assert_eq!(
+                world.info_command, info_now,
+                "Testing the before recover {:#?} and after recover {:#?}",
+                world.info_command, info_now
+            )
+        }
+        "transactions" | "txs" => {
+            let txs_now = WalletInformation::from(get_number_transactions_txs(
+                &world.chain_type,
+                &world.wallet_binary,
+                &world.password,
+            ));
+            println!(
+                "\nTXS COMP: \nBefore: {:#?} \n After {:#?}",
+                world.txs_command, txs_now
+            );
+
+            assert!(
+                txs_now.sent_tx == 0
+                    && world.txs_command.confirmed_coinbase == txs_now.confirmed_coinbase,
+                "Testing the before recover {:#?} and after recover {:#?}",
+                world.txs_command,
+                txs_now
+            )
+        }
+        "outputs" | "outputs_full_history" => {
+            let show_full_history = wallet_command.as_str() == "outputs_full_history";
+            let outputs_now = OutputList::from(get_number_outputs(
+                &world.chain_type,
+                &world.wallet_binary,
+                &world.password,
+                show_full_history,
+            ));
+            println!(
+                "\nOUTPUT COMP: \nBefore: {:#?} \n After {:#?}",
+                world.outputs_command, outputs_now
+            );
+
+            let check_outputs = world.outputs_command.eq(&outputs_now);
+
+            assert!(
+                check_outputs,
+                "Testing the before recover {:#?} and after recover {:#?}",
+                world.outputs_command, outputs_now
+            );
+
+            let check_outputs = check_outputs && {
+                2 * world.txs_command.sent_tx == world.outputs_command.unconfirmed
+            };
+
+            assert!(
+                check_outputs,
+                "The number of transactions does not match the number of `unconfirmed`, num_transactions {:#?} and number of unconfirmed {:#?}",
+				2 * world.txs_command.sent_tx, world.outputs_command.unconfirmed
+            );
+
+            assert_eq!(
+                world.outputs_command, outputs_now,
+                "Testing the before recover {:#?} and after recover {:#?}",
+                world.outputs_command, outputs_now
+            )
+        }
+        _ => println!("{wallet_command} is not a wallet command or not implemented yet"),
+    }
+}
+
+#[when(expr = "I delete the wallet folder")]
+fn delete_wallet_data(world: &mut TestingWorld) {
+    remove_wallet_path(&world.chain_type);
+}
+
+#[when(expr = "I make the recover in my wallet")]
+fn wallet_recover(world: &mut TestingWorld) {
+    recover_wallet_shell(
+        &world.chain_type,
+        &world.wallet_binary,
+        &world.password,
+        &world.passphrase,
+    );
+}
+
+// I run scan
+#[then(expr = "I run scan")]
+fn run_scan(world: &mut TestingWorld) {
+    let scan_work = scan_wallet(&world.chain_type, &world.wallet_binary, &world.password);
+    wait_for(5);
+    assert!(scan_work, "Scan don't work")
+}
+
 #[then(expr = "I await confirm the transaction")]
-fn await_finalization(world: &mut TransWorld) {
+fn await_finalization(world: &mut TestingWorld) {
     confirm_transaction(&world.chain_type, &world.wallet_binary, &world.password)
 }
 
 //I have 2 new transactions in txs
 #[then(expr = "I have {int} new transactions in txs")]
-fn check_new_transactions(world: &mut TransWorld, number_transactions: u32) {
+fn check_new_transactions(world: &mut TestingWorld, number_transactions: u32) {
     // Update transactions information in WalletInformation
     let transaction_info =
         get_number_transactions_txs(&world.chain_type, &world.wallet_binary, &world.password);
@@ -253,14 +317,14 @@ fn check_new_transactions(world: &mut TransWorld, number_transactions: u32) {
 }
 
 #[then(expr = "I kill all running epic systems")]
-fn kill_all_childs(world: &mut TransWorld) {
+fn kill_all_childs(world: &mut TestingWorld) {
     world.miner.kill().expect("Miner wasn't running");
     world.wallet.kill().expect("Wallet wasn't running");
     world.server.kill().expect("Server wasn't running");
 }
 
 #[when(expr = "I {word} the {word} transaction")]
-fn receive_step(world: &mut TransWorld, receive_finalize: String, method: String) {
+fn receive_step(world: &mut TestingWorld, receive_finalize: String, method: String) {
     let path_emoji_file = match receive_finalize.as_str() {
         "receive" => &world.transactions.sent_path,
         "finalize" => &world.transactions.receive_path,
@@ -314,7 +378,7 @@ fn receive_step(world: &mut TransWorld, receive_finalize: String, method: String
 }
 
 #[when(expr = "I make a {int} transactions with {word} method")]
-fn send_n_coins(world: &mut TransWorld, num_transactions: i32, method: String) {
+fn send_n_coins(world: &mut TestingWorld, num_transactions: i32, method: String) {
     let mut pack_transaction = PackTransaction {
         number_transactions: num_transactions,
         duration_time: Vec::new(),
@@ -331,14 +395,14 @@ fn send_n_coins(world: &mut TransWorld, num_transactions: i32, method: String) {
         receive_path: String::new(),
     };
     world.transactions = new_transactions_information;
-    let mut amount: String = pack_transaction
+    let _ = pack_transaction
         .vec_amount
         .first()
         .expect("Can't have amount to send")
         .to_string();
     let mmethod = method.clone();
     for k in 0..num_transactions as usize {
-        amount = pack_transaction.vec_amount[k].to_string();
+        let amount = pack_transaction.vec_amount[k].to_string();
         check_spendable(
             &world.chain_type,
             &world.wallet_binary,
@@ -368,7 +432,7 @@ fn send_n_coins(world: &mut TransWorld, num_transactions: i32, method: String) {
 
 //The average transaction time is less than "1" second
 #[then(expr = "The average transaction time is less than {float} second")]
-fn average_transactions(world: &mut TransWorld, secs_compare: f32) {
+fn average_transactions(world: &mut TestingWorld, secs_compare: f32) {
     let a = &world.dur_transactions;
     println!("\nAll transaction time: {:?}\n", &a);
     let avg: f32;
@@ -388,7 +452,7 @@ fn average_transactions(world: &mut TransWorld, secs_compare: f32) {
 
 //All transactions work
 #[then(expr = "All transactions work")]
-fn transactions_work(world: &mut TransWorld) {
+fn transactions_work(world: &mut TestingWorld) {
     // Update transactions information in WalletInformation
     let transaction_info =
         get_number_transactions_txs(&world.chain_type, &world.wallet_binary, &world.password);
@@ -418,5 +482,5 @@ fn transactions_work(world: &mut TransWorld) {
 fn main() {
     dotenv().ok();
     println!("Remember to close all running epic systems before running the test");
-    futures::executor::block_on(TransWorld::run("./features/scalability.feature"));
+    futures::executor::block_on(TestingWorld::run("./features/scalability.feature"));
 }
