@@ -285,11 +285,11 @@ pub fn info_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) -
 /// Check if locked coins == 0, await for 5 five minutes to break
 pub fn confirm_transaction(chain_type: &ChainTypes, binary_path: &str, password: &str) {
     // time dependence
-    let t0 = Instant::now();
+    let mut t0 = Instant::now();
     let n_minute = Duration::from_secs(10 * 60);
     let values_info = info_wallet(chain_type, binary_path, password);
     let struct_values = InfoWallet::from(values_info);
-    let locked_0 = struct_values.locked_by_previus_transaction;
+    let mut locked_0 = struct_values.locked_by_previus_transaction;
     while t0.elapsed() < n_minute {
         let values_info = info_wallet(chain_type, binary_path, password);
         let struct_values = InfoWallet::from(values_info);
@@ -298,8 +298,9 @@ pub fn confirm_transaction(chain_type: &ChainTypes, binary_path: &str, password:
             wait_for(15)
         } else {
             if locked_0 > locked && locked != 0.0 {
-                let t0 = Instant::now();
-                let locked_0 = locked.clone();
+                println!("	Reset time, The new info is {:?}", struct_values);
+                t0 = Instant::now();
+                locked_0 = locked.clone();
             } else {
                 println!(
 					"Can't confirm all transactions, Missing confirmation {:?} coins\n\nWe got this info: {:#?}",
