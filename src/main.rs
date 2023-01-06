@@ -1,8 +1,13 @@
+use testing::commands::{
+    confirm_transaction, new_child, send_coins_smallest, spawn_miner, spawn_network,
+    spawn_wallet_listen,
+};
 //use std::fmt::Display;
 use rand::{self, distributions::Uniform, Rng};
 use std::io::prelude::*;
 use std::sync::Arc;
 use std::{fmt, fs::File, thread, time};
+use testing::utils::{get_http_wallet, get_test_configuration, wait_for};
 
 use std::process::Child;
 use std::process::Command;
@@ -10,12 +15,6 @@ use std::time::Duration;
 
 use dotenv::dotenv;
 use std::env;
-
-//Testing
-use testing::{
-    confirm_transaction, get_http_wallet, get_test_configuration, new_child, send_coins_smallest,
-    spawn_miner, spawn_network, spawn_wallet_listen, wait_for,
-};
 
 // Epic Server
 use epic_core::global::ChainTypes;
@@ -157,8 +156,6 @@ fn main() {
         let http_pa = Arc::clone(&http_path);
 
         let handle = thread::spawn(move || {
-            // prepare the pack of transactions
-            let mut now = time::Instant::now();
             // number of transactions
             let number_transactions_total: u32 = 20;
             let mut pack_transactions = PackTransaction {
@@ -168,7 +165,7 @@ fn main() {
             };
 
             // lost the first transaction
-            let mut amount: String = pack_transactions
+            let _ = pack_transactions
                 .vec_amount
                 .first()
                 .expect("Can't have amount to send")
@@ -176,9 +173,9 @@ fn main() {
             // step to code save the chain_data and wallet_data
             let k_param = 100;
             for t_k in 0..pack_transactions.number_transactions as usize {
-                amount = pack_transactions.vec_amount[t_k].to_string();
+                let amount = pack_transactions.vec_amount[t_k].to_string();
 
-                now = time::Instant::now();
+                let now = time::Instant::now();
                 let out = send_coins_smallest(
                     &chain_t,
                     &wallet_bin,
