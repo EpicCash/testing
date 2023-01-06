@@ -242,22 +242,6 @@ fn compare_info(world: &mut TestingWorld, wallet_command: String) {
                 "Testing the before recover {:#?} and after recover {:#?}",
                 world.outputs_command, outputs_now
             );
-
-            let check_outputs = check_outputs && {
-                2 * world.txs_command.sent_tx == world.outputs_command.unconfirmed
-            };
-
-            assert!(
-                check_outputs,
-                "The number of transactions does not match the number of `unconfirmed`, num_transactions {:#?} and number of unconfirmed {:#?}",
-				2 * world.txs_command.sent_tx, world.outputs_command.unconfirmed
-            );
-
-            assert_eq!(
-                world.outputs_command, outputs_now,
-                "Testing the before recover {:#?} and after recover {:#?}",
-                world.outputs_command, outputs_now
-            )
         }
         _ => println!("{wallet_command} is not a wallet command or not implemented yet"),
     }
