@@ -4,14 +4,40 @@ Feature: Test longevity and stress the systems
     Given Define "epic-server" binary
     And Define "epic-wallet" binary
     And Define "epic-miner" binary
-    And I am using the "usernet" network
+    Given I am using the "usernet" network
+    # "new","stored-tiny", "stored-huge", "passphrase-tiny", "passphrase-huge"
+    And I use a "stored-huge" wallet
     When I start the node with policy "onlyrandomx"
+
+  @serial
+  Scenario: Testing the operation of a huge wallet
     When I start the wallet
-    And I start the miner
-    And I mine some blocks into my wallet
+    # Test time
+    When I make a 50 transactions with http method
+    Then The average transaction time is less than 15 second
+    # Test confirm transactions and mine
+    When I start the miner
+    Then I await confirm the transaction
+    When I stop the miner
+    And I stop the wallet
+    Then I run scan
+    # Save all informations in `info`, `txs` and `outputs`
+    Then I run and save info command
+    Then I run and save txs command
+    Then I run and save outputs command
+    When I delete the wallet folder
+    # Test recover
+    When I make the recover in my wallet
+    Then I have the same information
+    Then I have the same outputs
+    Then I have the same transactions
+    When I stop the node
 
   @serial
   Scenario: Test transaction time
+    When I start the wallet
+    When I start the miner
+    When I mine some blocks into my wallet
     When I make a 20 transactions with http method
     Then The average transaction time is less than 0.75 second
     And I await confirm the transaction
@@ -24,18 +50,3 @@ Feature: Test longevity and stress the systems
 #  Given I am using the <floonet> network
 #  When I create a new HOME and start a new node <10> times
 #  Then The nodes connect to another
-
-# Scenario planned but not yet done
-#@serial
-#Scenario: Testing the operation of a huge wallet
-#  Given I am using the <usernet> network
-#  And I start the local node
-#  And I initiate a wallet <Vitex_test> as w1
-#  And I initiate a wallet <new> as w2
-#  And Wallet <w2> is at listening mode on <usernet>
-#  When I make a <100> transactions from <w1> to <w2>
-#  And I start the miner
-#  Then I confirm all transactions
-#  Then I check <txs> informations
-#  Then I check <outputs> informations
-#  Then I check <info> informations
