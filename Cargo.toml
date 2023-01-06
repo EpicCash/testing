@@ -44,6 +44,8 @@ subprocess = "0.2"
 rand = "0.8"
 dotenv = "0.15"
 expectrl = "0.6"
+async-trait = "0.1"
+cucumber = "0.13"
 
 epic_chain = { git = "https://github.com/EpicCash/epic.git", branch = "develop", version = "3.0.9-1" }
 epic_core = { git = "https://github.com/EpicCash/epic.git", branch = "develop", version = "3.0.9-1" }
@@ -54,6 +56,4 @@ epic_p2p = { git = "https://github.com/EpicCash/epic.git", branch = "develop", v
 epic_wallet_config = { git = "https://github.com/EpicCash/epic-wallet.git", branch = "Develop", version = "3.0.0" }
 
 [dev-dependencies]
-async-trait = "0.1"
-cucumber = "0.13"
 futures = "0.3"
