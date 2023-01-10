@@ -6,12 +6,6 @@ Feature: Verify the longevity of a wallet, checking information in the chain ref
     And Define "epic-miner" binary
     And I am using the "usernet" network
 
-  Background: Defining settings
-    Given Define "epic-server" binary
-    And Define "epic-wallet" binary
-    And Define "epic-miner" binary
-    And I am using the "usernet" network
-
   @serial
   Scenario: Testing the operation of a new wallet - 1
     Given I use a "new" wallet
