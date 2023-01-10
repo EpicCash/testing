@@ -345,7 +345,7 @@ fn check_exist_new_db_file(world: &mut TestingWorld) {
     let mut home_dir = get_home_chain(&world.chain_type);
     home_dir.push("wallet_data");
     home_dir.push("db");
-    //home_dir.push("lmdb");
+    home_dir.push("sqlite");
     assert!(home_dir.is_dir())
 }
 

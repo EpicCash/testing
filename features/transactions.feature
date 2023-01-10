@@ -12,7 +12,7 @@ Feature: Test the methods of transactions and interactions between send, receive
 
 
   @serial
-  Scenario: Test Self send methods
+  Scenario: Test Self send methods 1
     Given I have a wallet with coins
     When I send 0.001 coins with self method
     And I await confirm the transaction
@@ -20,7 +20,7 @@ Feature: Test the methods of transactions and interactions between send, receive
     And I kill all running epic systems
 
   @serial
-  Scenario: Test HTTP send methods
+  Scenario: Test HTTP send methods 1
     Given I have a wallet with coins
     When I send 0.001 coins with http method
     And I await confirm the transaction
@@ -28,7 +28,7 @@ Feature: Test the methods of transactions and interactions between send, receive
     And I kill all running epic systems
 
   @serial
-  Scenario: Test Emoji send methods
+  Scenario: Test Emoji send methods 1
     Given I have a wallet with coins
     When I send 0.001 coins with emoji method
     And I receive the emoji transaction
@@ -38,9 +38,45 @@ Feature: Test the methods of transactions and interactions between send, receive
     And I kill all running epic systems
 
   @serial
-  Scenario: Test File send methods
+  Scenario: Test File send methods 1
     Given I have a wallet with coins
     When I send 0.001 coins with file method
+    And I receive the file transaction
+    And I finalize the file transaction
+    And I await confirm the transaction
+    Then I have 2 new transactions in txs
+    And I kill all running epic systems
+
+  @serial
+  Scenario: Test Self send methods 2
+    Given I have a wallet with coins
+    When I send 14 coins with self method
+    And I await confirm the transaction
+    Then I have 2 new transactions in txs
+    And I kill all running epic systems
+
+  @serial
+  Scenario: Test HTTP send methods 2
+    Given I have a wallet with coins
+    When I send 14 coins with http method
+    And I await confirm the transaction
+    Then I have 2 new transactions in txs
+    And I kill all running epic systems
+
+  @serial
+  Scenario: Test Emoji send methods 2
+    Given I have a wallet with coins
+    When I send 14 coins with emoji method
+    And I receive the emoji transaction
+    And I finalize the emoji transaction
+    And I await confirm the transaction
+    Then I have 2 new transactions in txs
+    And I kill all running epic systems
+
+  @serial
+  Scenario: Test File send methods 2
+    Given I have a wallet with coins
+    When I send 14 coins with file method
     And I receive the file transaction
     And I finalize the file transaction
     And I await confirm the transaction
