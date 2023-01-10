@@ -20,24 +20,27 @@ use epic_p2p::{types::Seeding, PeerAddr};
 /// The default file name to use when trying to derive
 /// the node config file location
 pub const TEST_SERVER_CONFIG_FILE_NAME: &'static str = "epic-server.toml";
+/// default server log file
 pub const TEST_SERVER_LOG_FILE_NAME: &'static str = "epic-server.log";
+/// default epic folder
 pub const TEST_EPIC_HOME: &'static str = ".epic";
+/// default chain folder
 pub const TEST_EPIC_CHAIN_DIR: &'static str = "chain_data";
 /// Node API secret
 pub const TEST_API_SECRET_FILE_NAME: &'static str = ".api_secret";
 
-// Force the code to await for secs seconds,
+/// Force the code to await for secs seconds,
 pub fn wait_for(secs: u64) {
     let duration = Duration::from_secs(secs);
     sleep(duration);
 }
 
-// ChainType to str shortname
+/// ChainType to str shortname
 pub fn chain_type_to_str(chain_type: ChainTypes) -> String {
     chain_type.shortname()
 }
 
-// str shortname to ChainTypes
+/// str shortname to ChainTypes
 pub fn str_to_chain_type(shortname: &str) -> ChainTypes {
     match shortname {
         "auto" => ChainTypes::AutomatedTesting,
@@ -48,7 +51,7 @@ pub fn str_to_chain_type(shortname: &str) -> ChainTypes {
     }
 }
 
-// Prepare the ip "a.b.c.d:port" to write to the server's toml
+/// Prepare the ip "a.b.c.d:port" to write to the server's toml
 pub fn get_ip_new(ip_v4: &str) -> PeerAddr {
     let ip_floonet_vm: SocketAddr = ip_v4
         .parse()
@@ -57,7 +60,7 @@ pub fn get_ip_new(ip_v4: &str) -> PeerAddr {
     ip_1
 }
 
-// Configure the epic-servert.toml to custom configuration
+/// Configure the epic-servert.toml to custom configuration
 pub fn change_server_toml_by_chain(toml_path: PathBuf, chain_type: &ChainTypes) {
     // If the .epic/network folder doesn't exist => create and generate the default toml with the name "epic-server.toml"
     // If the folder and file already exist it creates and overwrites "epic-server.toml" and ".api_secret"
@@ -130,7 +133,7 @@ pub fn change_server_toml_by_chain(toml_path: PathBuf, chain_type: &ChainTypes) 
         .expect("Can't save custom toml file");
 }
 
-// Generate the .epic folder, epic-server.toml, .api_secret and change the toml to special configuration
+/// Generate the .epic folder, epic-server.toml, .api_secret and change the toml to special configuration
 pub fn get_test_configuration(chain_type: &ChainTypes) {
     // Just return path, don't change nothing
     let toml_path = generate_toml_path(chain_type);
@@ -139,7 +142,7 @@ pub fn get_test_configuration(chain_type: &ChainTypes) {
     change_server_toml_by_chain(toml_path, chain_type);
 }
 
-// Don't check if exist, just build toml default path
+/// Return default epic home dir
 pub fn get_home_chain(chain_type: &ChainTypes) -> PathBuf {
     let mut home_path = match home_dir() {
         Some(p) => p,
@@ -150,14 +153,14 @@ pub fn get_home_chain(chain_type: &ChainTypes) -> PathBuf {
     home_path
 }
 
-// Don't check if exist, just build toml default path
+/// Don't check if exist, just build toml default path
 pub fn generate_toml_path(chain_type: &ChainTypes) -> PathBuf {
     let mut toml_path = get_home_chain(chain_type);
     toml_path.push(TEST_SERVER_CONFIG_FILE_NAME);
     toml_path
 }
 
-// Entry is a wallet init output and return the passprhase
+/// Entry is a wallet init output and return the passprhase
 pub fn get_passphrase(output: &Output) -> String {
     // String of message
     let output_msg = String::from_utf8_lossy(&output.stdout).into_owned();
@@ -181,10 +184,13 @@ pub fn get_passphrase(output: &Output) -> String {
     }
 }
 
+/// Delete current .epic/network/wallet_data and copy and paste the stored wallet
+/// TODO
 pub fn use_stored_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) {
     todo!()
 }
 
+/// Return http send destination
 pub fn get_http_wallet(chain_type: &ChainTypes) -> String {
     // TODO get from wallet toml (api_listen_interface = "127.0.0.1")
     let ip = "127.0.0.1";
@@ -199,24 +205,27 @@ pub fn get_http_wallet(chain_type: &ChainTypes) -> String {
     http_ip
 }
 
+/// Need to create the send file method
 pub fn local_now_str() -> String {
     let now: DateTime<Local> = Local::now();
     let now_string = format!("{}", now.format("%Y-%m-%d_%H-%M-%S"));
     now_string
 }
 
+/// Return .txt file to send method
 pub fn generate_file_name() -> String {
     let name = local_now_str();
     let sent_file_name = format!("{}.txt", name);
     sent_file_name
 }
 
+/// Return response file based on send file
 pub fn generate_response_file_name(sent_file_name: &String) -> String {
     let response_file_name = format!("{}.response", sent_file_name);
     response_file_name
 }
 
-// Code to return a vector of heights of all connected peers
+/// Code to return a vector of chain heights of all connected peers
 pub fn get_height_from_list_peers(output: &Output) -> Vec<i32> {
     // String of message
     let output_msg = String::from_utf8_lossy(&output.stdout).into_owned();
@@ -234,7 +243,7 @@ pub fn get_height_from_list_peers(output: &Output) -> Vec<i32> {
     height_vec
 }
 
-//
+/// Return max height from vector of chain height from peers
 pub fn get_chain_height_peers(vec_height: Vec<i32>) -> i32 {
     let max_height = vec_height.iter().max();
     match max_height {
@@ -243,12 +252,12 @@ pub fn get_chain_height_peers(vec_height: Vec<i32>) -> i32 {
     }
 }
 
-//
+/// Check if we have peers to hear
 pub fn check_peers(vec_height: Vec<i32>) {
     assert!(vec_height.len() > 0)
 }
 
-//
+/// Get chain height from epic status
 pub fn get_height_from_status(output: &Output) -> i32 {
     // String of message
     let output_msg = String::from_utf8_lossy(&output.stdout).into_owned();
@@ -261,6 +270,7 @@ pub fn get_height_from_status(output: &Output) -> i32 {
     height
 }
 
+/// Create a vector with number_elements of random numbers between [0.min_include, 0.max_exclude) contained in the (0,1)
 pub fn generate_vec_to_sent(
     min_include: i32,
     max_exclude: i32,
