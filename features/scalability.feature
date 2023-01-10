@@ -32,6 +32,7 @@ Feature: Test longevity and stress the systems
     Then I have the same outputs
     Then I have the same transactions
     When I stop the node
+    Then I kill all running epic systems
 
   @serial
   Scenario: Testing the operation of a huge wallet - self
@@ -46,11 +47,12 @@ Feature: Test longevity and stress the systems
     When I start the miner
     Then I await confirm the transaction
     When I stop the miner
-    And I stop the wallethuge
+    And I stop the wallet
     Then I have the same information
     Then I have the same outputs
     Then I have the same transactions
     When I stop the node
+    Then I kill all running epic systems
 
   @serial
   Scenario: Testing the operation of a tiny wallet - http
@@ -78,6 +80,7 @@ Feature: Test longevity and stress the systems
     Then I have the same outputs
     Then I have the same transactions
     When I stop the node
+    Then I kill all running epic systems
 
   @serial
   Scenario: Testing the operation of a tiny wallet - self
@@ -105,6 +108,7 @@ Feature: Test longevity and stress the systems
     Then I have the same outputs
     Then I have the same transactions
     When I stop the node
+    Then I kill all running epic systems
 
   @serial
   Scenario: Test transaction time 1

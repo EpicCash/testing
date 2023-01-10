@@ -65,6 +65,7 @@ Feature: Verify the longevity of a wallet, checking information in the chain ref
     Given I have a wallet in LMDB
     Then I run and save info command
     And I check if wallet change to new DB
+    And I kill all running epic systems
 
   @serial
   Scenario: Test if wallet change itself to new DB - huge
@@ -73,3 +74,4 @@ Feature: Verify the longevity of a wallet, checking information in the chain ref
     Given I have a wallet in LMDB
     Then I run and save info command
     And I check if wallet change to new DB
+    And I kill all running epic systems
