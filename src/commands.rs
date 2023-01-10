@@ -53,7 +53,7 @@ pub fn get_wallet_chain_data(chain_type: &ChainTypes, wallet_chain: &str) -> Pat
 
     match wallet_chain {
         "wallet" => general_dest.push("wallet_data"),
-        "chain" | _ => general_dest.push("chain_data"),
+        _ => general_dest.push("chain_data"),
     };
 
     general_dest
