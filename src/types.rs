@@ -326,3 +326,57 @@ impl std::default::Default for TestingWorld {
         }
     }
 }
+
+/// To main function create the huge wallet
+#[derive(Debug, Clone)]
+pub struct BigWalletWorld {
+    /// Chain type
+    pub chain_type: ChainTypes,
+    /// Send method
+    pub send_method: String,
+    /// http destination
+    pub http_path: String,
+    /// password
+    pub password: String,
+    /// binary
+    pub server_binary: String,
+    /// binary
+    pub wallet_binary: String,
+    /// binary
+    pub miner_binary: String,
+}
+
+impl std::default::Default for BigWalletWorld {
+    fn default() -> BigWalletWorld {
+        BigWalletWorld {
+            chain_type: ChainTypes::UserTesting,
+            send_method: String::from("http"),
+            http_path: String::new(),
+            password: String::from("1"),
+            server_binary: String::new(),
+            wallet_binary: String::new(),
+            miner_binary: String::new(),
+        }
+    }
+}
+
+/// Like a world from cucumber but to main function create the huge wallet
+#[derive(Debug)]
+pub struct ChildProcess {
+    /// server process
+    pub server: Child,
+    /// wallet process
+    pub wallet: Child,
+    /// miner process
+    pub miner: Child,
+}
+
+impl std::default::Default for ChildProcess {
+    fn default() -> ChildProcess {
+        ChildProcess {
+            server: new_child(),
+            wallet: new_child(),
+            miner: new_child(),
+        }
+    }
+}

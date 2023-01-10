@@ -1,17 +1,15 @@
 use testing::commands::{
-    confirm_transaction, new_child, send_coins_smallest, spawn_miner, spawn_network,
-    spawn_wallet_listen,
+    confirm_transaction, send_coins_smallest, spawn_miner, spawn_network, spawn_wallet_listen,
 };
-//use std::fmt::Display;
+use testing::types::{BigWalletWorld, ChildProcess, PackTransaction};
+
 use rand::{self, distributions::Uniform, Rng};
 use std::io::prelude::*;
 use std::sync::Arc;
-use std::{fmt, fs::File, thread, time};
+use std::{fs::File, thread, time};
 use testing::utils::{get_http_wallet, get_test_configuration, wait_for};
 
-use std::process::Child;
 use std::process::Command;
-use std::time::Duration;
 
 use dotenv::dotenv;
 use std::env;
@@ -19,65 +17,7 @@ use std::env;
 // Epic Server
 use epic_core::global::ChainTypes;
 
-impl std::default::Default for BigWalletWorld {
-    fn default() -> BigWalletWorld {
-        BigWalletWorld {
-            chain_type: ChainTypes::UserTesting,
-            send_method: String::from("http"),
-            http_path: String::new(),
-            password: String::from("1"),
-            server_binary: String::new(),
-            wallet_binary: String::new(),
-            miner_binary: String::new(),
-        }
-    }
-}
-
-impl std::default::Default for ChildProcess {
-    fn default() -> ChildProcess {
-        ChildProcess {
-            server: new_child(),
-            wallet: new_child(),
-            miner: new_child(),
-        }
-    }
-}
-
-impl fmt::Display for PackTransaction {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "number_transactions: {:?}\nduration_time: {:?}\nvec_amount: {:?})",
-            self.number_transactions, self.duration_time, self.vec_amount
-        )
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct BigWalletWorld {
-    pub chain_type: ChainTypes,
-    pub send_method: String,
-    pub http_path: String,
-    pub password: String,
-    pub server_binary: String,
-    pub wallet_binary: String,
-    pub miner_binary: String,
-}
-
-#[derive(Debug)]
-pub struct ChildProcess {
-    pub server: Child,
-    pub wallet: Child,
-    pub miner: Child,
-}
-
-#[derive(Debug)]
-pub struct PackTransaction {
-    pub number_transactions: u32,
-    pub duration_time: Vec<Duration>,
-    pub vec_amount: Vec<String>,
-}
-
+/// special function to generate random numbers to send
 fn generate_vec_to_sent(min_include: i32, max_exclude: i32, number_elements: i32) -> Vec<String> {
     let mut rng = rand::thread_rng();
     let range = Uniform::new(min_include, max_exclude); // [min, max)
@@ -88,6 +28,8 @@ fn generate_vec_to_sent(min_include: i32, max_exclude: i32, number_elements: i32
     vals
 }
 
+/// special function to save the send struct
+/// I don't want to formalize it now because it will take time and without any gain because its use is specific
 fn save_transaction(pack: PackTransaction, name_file: String) {
     let mut file =
         File::create(format!("{}.txt", name_file)).expect("Failed on create a transaction file");
@@ -96,6 +38,8 @@ fn save_transaction(pack: PackTransaction, name_file: String) {
         .expect("Failed on write the transaction file");
 }
 
+/// special function to save .epic folder
+/// I don't want to formalize it now because it will take time and without any gain because its use is specific
 fn save_data(pos_name: String) {
     let wallet_name = format!("/home/jualns/.epic/user/wallet_data_{}", pos_name);
     let chain_name = format!("/home/jualns/.epic/user/chain_data_{}", pos_name);
@@ -157,7 +101,7 @@ fn main() {
 
         let handle = thread::spawn(move || {
             // number of transactions
-            let number_transactions_total: u32 = 20;
+            let number_transactions_total: i32 = 20;
             let mut pack_transactions = PackTransaction {
                 number_transactions: number_transactions_total + 1, // +1 because we lost the fisrt transaction (logical error on code)
                 duration_time: Vec::new(),                          //vec![now.elapsed(); 1],
