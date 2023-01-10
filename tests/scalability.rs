@@ -53,7 +53,7 @@ fn using_wallet(world: &mut TestingWorld, type_wallet: String) {
             let stored_wallets = env::var("STORED_WALLETS").expect("Can't get the stored_wallets folder, see Epic [drive](https://drive.google.com/drive/folders/14gq0Mh8sL_I9XYuTWSrJAwxiR0CkhcPT)");
             let specif_wallet = match type_wallet.as_str() {
                 "stored-huge" => format!("{}/wallet_data_huge", stored_wallets.clone()),
-                "stored-tiny" | _ => {
+                _ => {
                     format!("{}/wallet_data_tiny", stored_wallets.clone())
                 }
             };
@@ -345,6 +345,9 @@ fn kill_all_childs(world: &mut TestingWorld) {
     world.miner.kill().expect("Miner wasn't running");
     world.wallet.kill().expect("Wallet wasn't running");
     world.server.kill().expect("Server wasn't running");
+
+    println!("--------------- FINISh SCENARIO ---------------");
+    wait_for(5)
 }
 
 #[when(expr = "I {word} the {word} transaction")]
