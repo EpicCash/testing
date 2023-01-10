@@ -184,12 +184,6 @@ pub fn get_passphrase(output: &Output) -> String {
     }
 }
 
-/// Delete current .epic/network/wallet_data and copy and paste the stored wallet
-/// TODO
-pub fn use_stored_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) {
-    todo!()
-}
-
 /// Return http send destination
 pub fn get_http_wallet(chain_type: &ChainTypes) -> String {
     // TODO get from wallet toml (api_listen_interface = "127.0.0.1")
