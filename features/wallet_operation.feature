@@ -8,7 +8,7 @@ Feature: Verify the longevity of a wallet, checking information in the chain ref
     When I start the node with policy "onlyrandomx"
 
   @serial
-  Scenario: Testing the operation of a new wallet
+  Scenario: Testing the operation of a new wallet - 1
     When I start the wallet
     And I start the miner
     # 19 >= 0.001 + 3 + 15
@@ -29,7 +29,34 @@ Feature: Verify the longevity of a wallet, checking information in the chain ref
     When I stop the node
 
   @serial
-  Scenario: Test if wallet change itself to new DB
-    Given I have a wallet in LMDB
+  Scenario: Testing the operation of a new wallet - 2
+    When I start the wallet
+    And I start the miner
+    # 60 >= 15.0000001 + 14 + 30
+    And I mine 60 coins into my wallet
+    # Test a float value < 1.
+    When I send 15.0000001 coins with self method
+    # Test an amount smaller than a block, < approximately 14.52 coins.
+    And I send 14 coins with self method
+    # Test a value greater than one block, to use more than 1 output to create a new transaction.
+    And I send 30 coins with self method
+    Then I await confirm the transaction
+    When I stop the miner
+    And I stop the wallet
+    Then I run and save info command
+    When I delete the wallet folder
+    When I make the recover in my wallet
+    Then I have the same information
+    When I stop the node
+
+  @serial
+  Scenario: Test if wallet change itself to new DB - tiny
+    Given I have a tiny-wallet in LMDB
+    Then I run info command
+    And I check if wallet change to new DB
+
+  @serial
+  Scenario: Test if wallet change itself to new DB - huge
+    Given I have a huge-wallet in LMDB
     Then I run info command
     And I check if wallet change to new DB
