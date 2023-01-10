@@ -346,7 +346,7 @@ fn kill_all_childs(world: &mut TestingWorld) {
     world.wallet.kill().expect("Wallet wasn't running");
     world.server.kill().expect("Server wasn't running");
 
-    println!("--------------- FINISh SCENARIO ---------------");
+    println!("--------------- FINISH SCENARIO ---------------");
     wait_for(5)
 }
 
