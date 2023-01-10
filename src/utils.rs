@@ -142,7 +142,7 @@ pub fn get_test_configuration(chain_type: &ChainTypes) {
     change_server_toml_by_chain(toml_path, chain_type);
 }
 
-/// Return default epic home dir
+/// Return default epic home dir: .epic/user, .epic/floo or .epic/main
 pub fn get_home_chain(chain_type: &ChainTypes) -> PathBuf {
     let mut home_path = match home_dir() {
         Some(p) => p,

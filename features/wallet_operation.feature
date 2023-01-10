@@ -5,10 +5,17 @@ Feature: Verify the longevity of a wallet, checking information in the chain ref
     And Define "epic-wallet" binary
     And Define "epic-miner" binary
     And I am using the "usernet" network
-    When I start the node with policy "onlyrandomx"
+
+  Background: Defining settings
+    Given Define "epic-server" binary
+    And Define "epic-wallet" binary
+    And Define "epic-miner" binary
+    And I am using the "usernet" network
 
   @serial
   Scenario: Testing the operation of a new wallet - 1
+    Given I use a "new" wallet
+    When I start the node with policy "onlyrandomx"
     When I start the wallet
     And I start the miner
     # 19 >= 0.001 + 3 + 15
@@ -30,6 +37,8 @@ Feature: Verify the longevity of a wallet, checking information in the chain ref
 
   @serial
   Scenario: Testing the operation of a new wallet - 2
+    Given I use a "new" wallet
+    When I start the node with policy "onlyrandomx"
     When I start the wallet
     And I start the miner
     # 60 >= 15.0000001 + 14 + 30
@@ -51,12 +60,16 @@ Feature: Verify the longevity of a wallet, checking information in the chain ref
 
   @serial
   Scenario: Test if wallet change itself to new DB - tiny
-    Given I have a tiny-wallet in LMDB
-    Then I run info command
+    Given I use a "stored-tiny" wallet
+    When I start the node with policy "onlyrandomx"
+    Given I have a wallet in LMDB
+    Then I run and save info command
     And I check if wallet change to new DB
 
   @serial
   Scenario: Test if wallet change itself to new DB - huge
-    Given I have a huge-wallet in LMDB
-    Then I run info command
+    Given I use a "stored-huge" wallet
+    When I start the node with policy "onlyrandomx"
+    Given I have a wallet in LMDB
+    Then I run and save info command
     And I check if wallet change to new DB
