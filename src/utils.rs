@@ -142,7 +142,7 @@ pub fn get_test_configuration(chain_type: &ChainTypes) {
     change_server_toml_by_chain(toml_path, chain_type);
 }
 
-/// Return default epic home dir
+/// Return default epic home dir: .epic/user, .epic/floo or .epic/main
 pub fn get_home_chain(chain_type: &ChainTypes) -> PathBuf {
     let mut home_path = match home_dir() {
         Some(p) => p,
@@ -182,12 +182,6 @@ pub fn get_passphrase(output: &Output) -> String {
         Some(passphrase) => String::from(passphrase),
         None => panic!("Can't get passphrase from output: {:?}", &output_msg),
     }
-}
-
-/// Delete current .epic/network/wallet_data and copy and paste the stored wallet
-/// TODO
-pub fn use_stored_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) {
-    todo!()
 }
 
 /// Return http send destination
