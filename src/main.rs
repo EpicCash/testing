@@ -56,8 +56,8 @@ fn save_data(pos_name: String) {
     println!("WALL {:?} -- name {:?}", wallet_cop, wallet_name);
 }
 
-//#[tokio::main]
-fn main() {
+#[tokio::main]
+async fn main() {
     dotenv().ok();
 
     let method_send = String::from("http");
@@ -77,7 +77,7 @@ fn main() {
     // config epic-server.toml with custom configuration
     get_test_configuration(&chain_type);
     // Wait the epic-servet.toml save
-    wait_for(5);
+    wait_for(5).await;
     // run server and wallet, and save on world
     childrens.server = spawn_network(&chain_type, server_binary.as_str(), Some("--onlyrandomx"));
     // save the wallet_listen process on world
@@ -86,7 +86,7 @@ fn main() {
     childrens.miner = spawn_miner(&miner_binary);
 
     // wait for 30 secs to miner start
-    wait_for(30);
+    wait_for(30).await;
 
     let mut handles_vec = Vec::new();
 
@@ -166,7 +166,7 @@ fn main() {
     }
 
     //// Confirm transactions all last
-    confirm_transaction(&chain_type, &wallet_binary, &password);
+    confirm_transaction(&chain_type, &wallet_binary, &password).await;
 
     //// Finish all systems
     childrens.miner.kill().expect("Can't kill miner!");

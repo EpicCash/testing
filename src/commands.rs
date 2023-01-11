@@ -283,7 +283,7 @@ pub fn info_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) -
 }
 
 /// Check if locked coins == 0, await for 5 five minutes to break
-pub fn confirm_transaction(chain_type: &ChainTypes, binary_path: &str, password: &str) {
+pub async fn confirm_transaction(chain_type: &ChainTypes, binary_path: &str, password: &str) {
     // time dependence
     let mut t0 = Instant::now();
     let n_minute = Duration::from_secs(10 * 60);
@@ -295,7 +295,7 @@ pub fn confirm_transaction(chain_type: &ChainTypes, binary_path: &str, password:
         let struct_values = InfoWallet::from(values_info);
         let locked = struct_values.locked_by_previus_transaction;
         if locked > 0.0 {
-            wait_for(15)
+            wait_for(15).await;
         } else {
             if locked_0 > locked && locked != 0.0 {
                 println!("	Reset time, The new info is {:?}", struct_values);
@@ -317,7 +317,7 @@ pub fn confirm_transaction(chain_type: &ChainTypes, binary_path: &str, password:
 }
 
 /// Check if locked coins == 0, await for 2 minutes to break
-pub fn check_spendable(
+pub async fn check_spendable(
     chain_type: &ChainTypes,
     binary_path: &str,
     password: &str,
@@ -331,7 +331,7 @@ pub fn check_spendable(
     let info_struct = InfoWallet::from(info);
     let mut current_spendable = &info_struct.currently_spendable;
     while current_spendable < need_amount && t0.elapsed() < two_minute {
-        wait_for(10);
+        wait_for(10).await;
         info = info_wallet(chain_type, binary_path, password);
         current_spendable = info.last().expect("Can't get the current spendable!");
     }

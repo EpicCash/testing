@@ -9,8 +9,8 @@ use rand::{self, distributions::Uniform, Rng};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::process::Output;
-use std::thread::sleep;
 use std::time::Duration;
+use tokio::time::sleep;
 
 // Epic Server
 use epic_config::config::initial_setup_server;
@@ -30,9 +30,9 @@ pub const TEST_EPIC_CHAIN_DIR: &'static str = "chain_data";
 pub const TEST_API_SECRET_FILE_NAME: &'static str = ".api_secret";
 
 /// Force the code to await for secs seconds,
-pub fn wait_for(secs: u64) {
+pub async fn wait_for(secs: u64) {
     let duration = Duration::from_secs(secs);
-    sleep(duration);
+    sleep(duration).await;
 }
 
 /// ChainType to str shortname
