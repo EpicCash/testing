@@ -362,7 +362,7 @@ fn receive_step(world: &mut TestingWorld, receive_finalize: String, method: Stri
 }
 
 #[when(expr = "I make a {int} transactions with {word} method")]
-fn send_n_coins(world: &mut TestingWorld, num_transactions: i32, method: String) {
+async fn send_n_coins(world: &mut TestingWorld, num_transactions: i32, method: String) {
     let mut pack_transaction = PackTransaction {
         number_transactions: num_transactions,
         duration_time: Vec::new(),
@@ -392,7 +392,8 @@ fn send_n_coins(world: &mut TestingWorld, num_transactions: i32, method: String)
             &world.wallet_binary,
             &world.password,
             &amount.parse().expect("Can't convert amount to f32!"),
-        );
+        )
+        .await;
 
         // If method is HTTP or file, send command needs a destination
         let dest = get_http_wallet(&world.chain_type);
@@ -462,9 +463,9 @@ fn transactions_work(world: &mut TestingWorld) {
     );
 }
 
-//#[tokio::main]
-fn main() {
+#[tokio::main]
+async fn main() {
     dotenv().ok();
     println!("Remember to close all running epic systems before running the test");
-    futures::executor::block_on(TestingWorld::run("./features/scalability.feature"));
+    TestingWorld::run("./features/scalability.feature").await;
 }
