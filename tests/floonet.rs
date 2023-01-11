@@ -199,9 +199,9 @@ async fn kill_all_childs(world: &mut TestingWorld) {
     wait_for(5).await;
 }
 
-//#[tokio::main]
-fn main() {
+#[tokio::main]
+async fn main() {
     dotenv().ok();
     println!("Remember to close all running epic systems before running the test");
-    futures::executor::block_on(TestingWorld::run("./features/floonet.feature"));
+    TestingWorld::run("./features/floonet.feature").await;
 }

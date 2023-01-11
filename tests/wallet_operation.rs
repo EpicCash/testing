@@ -354,5 +354,4 @@ async fn main() {
     dotenv().ok();
     println!("Remember to close all running epic systems before running the test");
     TestingWorld::run("./features/wallet_operation.feature").await;
-    // futures::executor::block_on(TestingWorld::run("./features/wallet_operation.feature"));
 }

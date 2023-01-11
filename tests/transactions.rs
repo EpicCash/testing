@@ -281,9 +281,9 @@ fn receive_step(world: &mut TestingWorld, receive_finalize: String, method: Stri
     assert!(output_receive_finalize.status.success())
 }
 
-//#[tokio::main]
-fn main() {
+#[tokio::main]
+async fn main() {
     dotenv().ok();
     println!("Remember to close all running epic systems before running the test");
-    futures::executor::block_on(TestingWorld::run("./features/transactions.feature"));
+    TestingWorld::run("./features/transactions.feature").await;
 }
