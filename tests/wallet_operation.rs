@@ -27,14 +27,14 @@ fn set_binary(world: &mut TestingWorld, epic_sys: String) {
 }
 
 #[given(expr = "I am using the {string} network")]
-fn using_network(world: &mut TestingWorld, str_chain: String) {
+async fn using_network(world: &mut TestingWorld, str_chain: String) {
     let chain_t = str_to_chain_type(&str_chain);
 
     world.chain_type = chain_t;
     // config epic-server.toml with custom configuration
     get_test_configuration(&world.chain_type);
     // Wait the epic-servet.toml work
-    wait_for(5);
+    wait_for(5).await;
 
     // NEED CREATE WALLET BEFORE SPAWN SERVER, Unable to delete folder if server is on
     // run wallet and save on world
@@ -79,7 +79,7 @@ fn compare_info(world: &mut TestingWorld) {
 }
 
 #[when(expr = "I start the node with policy {string}")]
-fn start_child_system(world: &mut TestingWorld, enter_policy: String) {
+async fn start_child_system(world: &mut TestingWorld, enter_policy: String) {
     if enter_policy.len() == 0 {
         world.server = spawn_network(&world.chain_type, world.server_binary.as_str(), None);
     } else {
@@ -92,12 +92,12 @@ fn start_child_system(world: &mut TestingWorld, enter_policy: String) {
             Some(poly.as_str()),
         );
     };
-    wait_for(10)
+    wait_for(10).await;
 }
 
 // I start/stop the wallet/miner
 #[when(expr = "I {word} the {word}")]
-fn start_child_general(world: &mut TestingWorld, start_stop: String, epic_system: String) {
+async fn start_child_general(world: &mut TestingWorld, start_stop: String, epic_system: String) {
     match start_stop.as_str() {
         "start" => {
             match epic_system.as_str() {
@@ -115,7 +115,7 @@ fn start_child_general(world: &mut TestingWorld, start_stop: String, epic_system
                 }
                 _ => panic!("Specified system does not exist to start!"),
             };
-            wait_for(2)
+            wait_for(2).await;
         }
         "stop" => match epic_system.as_str() {
             "node" => world.server.kill().expect("Server wasn't running"),
@@ -128,7 +128,7 @@ fn start_child_general(world: &mut TestingWorld, start_stop: String, epic_system
 }
 
 #[when(expr = "I mine {word} coins into my wallet")]
-fn mine_some_coins(world: &mut TestingWorld, quantity: String) {
+async fn mine_some_coins(world: &mut TestingWorld, quantity: String) {
     // TODO - Wait for 5~10 blocks
     let mut info = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
     let mut current_spendable = info.last().expect("Can't get the current spendable!");
@@ -140,15 +140,15 @@ fn mine_some_coins(world: &mut TestingWorld, quantity: String) {
         }
     };
     while current_spendable <= &low_limit {
-        wait_for(15);
+        wait_for(15).await;
         info = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
         current_spendable = info.last().expect("Can't get the current spendable!");
     }
 }
 
 #[then(expr = "I await confirm the transaction")]
-fn await_finalization(world: &mut TestingWorld) {
-    confirm_transaction(&world.chain_type, &world.wallet_binary, &world.password)
+async fn await_finalization(world: &mut TestingWorld) {
+    confirm_transaction(&world.chain_type, &world.wallet_binary, &world.password).await;
 }
 
 // I mine 11 blocks and stop miner
@@ -349,9 +349,10 @@ fn check_exist_new_db_file(world: &mut TestingWorld) {
     assert!(home_dir.is_dir())
 }
 
-//#[tokio::main]
-fn main() {
+#[tokio::main]
+async fn main() {
     dotenv().ok();
     println!("Remember to close all running epic systems before running the test");
-    futures::executor::block_on(TestingWorld::run("./features/wallet_operation.feature"));
+    TestingWorld::run("./features/wallet_operation.feature").await;
+    // futures::executor::block_on(TestingWorld::run("./features/wallet_operation.feature"));
 }

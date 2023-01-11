@@ -24,14 +24,14 @@ fn set_binary(world: &mut TestingWorld, epic_sys: String) {
 }
 
 #[given(expr = "I am using the {string} network")]
-fn using_network(world: &mut TestingWorld, str_chain: String) {
+async fn using_network(world: &mut TestingWorld, str_chain: String) {
     let chain_t = str_to_chain_type(&str_chain);
 
     world.chain_type = chain_t;
     // config epic-server.toml with custom configuration
     get_test_configuration(&world.chain_type);
     // Wait the epic-servet.toml work
-    wait_for(5);
+    wait_for(5).await;
 
     // NEED CREATE WALLET BEFORE SPAWN SERVER, Unable to delete folder if server is on
     // run wallet and save on world
@@ -43,7 +43,7 @@ fn using_network(world: &mut TestingWorld, str_chain: String) {
 }
 
 #[when(expr = "I start the node with policy {string}")]
-fn start_child_system(world: &mut TestingWorld, enter_policy: String) {
+async fn start_child_system(world: &mut TestingWorld, enter_policy: String) {
     let mut poly = String::from("--");
     poly.push_str(enter_policy.as_str());
     // run server and save on world
@@ -52,11 +52,11 @@ fn start_child_system(world: &mut TestingWorld, enter_policy: String) {
         world.server_binary.as_str(),
         Some(poly.as_str()),
     );
-    wait_for(10)
+    wait_for(10).await;
 }
 
 #[then(expr = "The chain is downloaded and synced")]
-fn check_chain_synced(world: &mut TestingWorld) {
+async fn check_chain_synced(world: &mut TestingWorld) {
     let mut chain_height_peers: i32 = 0; //peer_height
     let mut chain_height_status: i32 = 1; // local_height
     let mut num_checks: i32 = 0; // k interations
@@ -72,7 +72,7 @@ fn check_chain_synced(world: &mut TestingWorld) {
         // get max of height from othres peers
         chain_height_peers = get_chain_height_peers(out_height);
         while chain_height_peers == 0 && num_checks_peers < 20 {
-            wait_for(10);
+            wait_for(10).await;
             num_checks_peers += 1;
             if chain_height_status == 0 {
                 break;
@@ -83,7 +83,7 @@ fn check_chain_synced(world: &mut TestingWorld) {
         }
 
         if chain_height_status < chain_height_peers && num_checks < 10 {
-            wait_for(15);
+            wait_for(15).await;
             num_checks += 1
         } else {
             break;
@@ -97,14 +97,14 @@ fn check_chain_synced(world: &mut TestingWorld) {
 }
 
 #[then(expr = "I am able to see more than one peer connected")]
-fn check_connected_peers(world: &mut TestingWorld) {
+async fn check_connected_peers(world: &mut TestingWorld) {
     let mut num_checks_peers: i32 = 0; // k interations
 
     // height from others peers
     let msg_list_of_peers = get_list_peers(&world.chain_type, &world.server_binary);
     let mut out_height = get_height_from_list_peers(&msg_list_of_peers);
     while out_height.len() == 0 && num_checks_peers < 20 {
-        wait_for(10);
+        wait_for(10).await;
         num_checks_peers += 1;
         let msg_list_of_peers = get_list_peers(&world.chain_type, &world.server_binary);
         out_height = get_height_from_list_peers(&msg_list_of_peers);
@@ -118,7 +118,7 @@ fn check_connected_peers(world: &mut TestingWorld) {
 
 // I start/stop the wallet/miner
 #[when(expr = "I {word} the {word}")]
-fn start_child_general(world: &mut TestingWorld, start_stop: String, epic_system: String) {
+async fn start_child_general(world: &mut TestingWorld, start_stop: String, epic_system: String) {
     match start_stop.as_str() {
         "start" => {
             match epic_system.as_str() {
@@ -136,7 +136,7 @@ fn start_child_general(world: &mut TestingWorld, start_stop: String, epic_system
                 }
                 _ => panic!("Specified system does not exist to start!"),
             };
-            wait_for(2)
+            wait_for(2).await;
         }
         "stop" => match epic_system.as_str() {
             "node" => world.server.kill().expect("Server wasn't running"),
@@ -149,12 +149,12 @@ fn start_child_general(world: &mut TestingWorld, start_stop: String, epic_system
 }
 
 #[given("I mine some blocks into my wallet")]
-fn mine_some_coins(world: &mut TestingWorld) {
+async fn mine_some_coins(world: &mut TestingWorld) {
     // TODO - Wait for 5~10 blocks
     let mut info = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
     let mut current_spendable = info.last().expect("Can't get the current spendable!");
     while current_spendable == &0.0 {
-        wait_for(30);
+        wait_for(30).await;
         info = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
         current_spendable = info.last().expect("Can't get the current spendable!");
     }
@@ -186,17 +186,17 @@ fn check_coins_in_wallet(world: &mut TestingWorld) {
 }
 
 #[when(expr = "I await confirm the transaction")]
-fn await_finalization(world: &mut TestingWorld) {
-    confirm_transaction(&world.chain_type, &world.wallet_binary, &world.password)
+async fn await_finalization(world: &mut TestingWorld) {
+    confirm_transaction(&world.chain_type, &world.wallet_binary, &world.password).await;
 }
 
 #[then(expr = "I kill all running epic systems")]
-fn kill_all_childs(world: &mut TestingWorld) {
-    wait_for(10);
+async fn kill_all_childs(world: &mut TestingWorld) {
+    wait_for(10).await;
     world.miner.kill().expect("Miner wasn't running");
     world.wallet.kill().expect("Wallet wasn't running");
     world.server.kill().expect("Server wasn't running");
-    wait_for(5);
+    wait_for(5).await;
 }
 
 //#[tokio::main]
