@@ -14,8 +14,6 @@ for i in $(seq 1 $1); do
     random_string=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9')
     PATH_NAME=$i-$random_string
 
-    echo "$EPIC_WALLET_BINARY -c "./$WORLD_NAME/$PATH_NAME" -p "$PATH_NAME" --usernet init"
-
     # Initialize the wallets
     $EPIC_WALLET_BINARY -c "./$WORLD_NAME/$PATH_NAME" -p "$PATH_NAME" --usernet init
 done
