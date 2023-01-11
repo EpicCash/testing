@@ -1,7 +1,6 @@
 #!/bin/bash
 
 WORLD_NAME=world
-EPIC_WALLET_TOML=./epic-wallet.toml
 EPIC_WALLET_BINARY=/home/jhelison/Documents/epic/testing/binaries/epic-wallet
 
 echo "Creating a wallet world with $1 wallets"
