@@ -85,7 +85,7 @@ run_test_miner = false
 host = "0.0.0.0"
 
 #The port on which to listen.
-port = 3414
+port = 23414
 
 #how to seed this server, can be None, List or DNSSeed
 seeding_type = "DNSSeed"
@@ -168,7 +168,7 @@ always_stem_our_txs = true
 enable_stratum_server = true
 
 #what port and address for the stratum server to listen on
-stratum_server_addr = "127.0.0.1:3416"
+stratum_server_addr = "127.0.0.1:13416"
 
 #the amount of time, in seconds, to attempt to mine on a particular
 #header before stopping and re-collecting transactions from the pool
@@ -178,7 +178,7 @@ randomx_minimum_share_difficulty = 4000
 progpow_minimum_share_difficulty = 200000
 
 #the wallet receiver to which coinbase rewards will be sent
-wallet_listener_url = "http://127.0.0.1:3415"
+wallet_listener_url = "http://127.0.0.1:23415"
 
 #whether to ignore the reward (mostly for testing)
 burn_reward = false
