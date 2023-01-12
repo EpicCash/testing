@@ -1,7 +1,6 @@
 #!/bin/bash
 
-WORLD_NAME=world
-EPIC_WALLET_BINARY=/home/jhelison/Documents/epic/testing/binaries/epic-wallet
+source variables.sh
 
 echo "Creating a wallet world with $1 wallets"
 

@@ -1,7 +1,6 @@
 #!/bin/bash
 
-WORLD_NAME=world
-EPIC_WALLET_BINARY=/home/jhelison/Documents/epic/testing/binaries/epic-wallet
+source variables.sh
 
 for dir in ./world/*/; do
     if [ $((RANDOM % 2)) -eq 1 ]; then

@@ -1,7 +1,6 @@
 #!/bin/bash
 
-WORLD_NAME=world
-EPIC_WALLET_BINARY=/home/jualns/Desktop/epic-wallet/target/release/epic-wallet
+source variables.sh
 
 for dir in ./world/*/; do
     if [ $((RANDOM % 2)) -eq 1 ]; then
@@ -10,7 +9,8 @@ for dir in ./world/*/; do
 
     WALLET_PASSWORD="$(basename "$dir")"
 
-    sh listen_wallet.sh $EPIC_WALLET_BINARY $dir $WALLET_PASSWORD
+    echo "Wallet $WALLET_PASSWORD listening to mine"
+    sh listen_wallet.sh $EPIC_WALLET_BINARY $dir $WALLET_PASSWORD > /dev/null
 
     sleep 5
 done
