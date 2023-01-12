@@ -11,4 +11,6 @@ for dir in ./world/*/; do
     WALLET_PASSWORD="$(basename "$dir")"
 
     sh listen_wallet.sh $EPIC_WALLET_BINARY $dir $WALLET_PASSWORD
+
+    sleep 5
 done
