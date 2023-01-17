@@ -44,7 +44,7 @@ async fn using_network(world: &mut TestingWorld, str_chain: String) {
 
 // I use a stored/new wallet
 #[given(expr = "I use a {string} wallet")]
-fn using_wallet(world: &mut TestingWorld, type_wallet: String) {
+async fn using_wallet(world: &mut TestingWorld, type_wallet: String) {
     // NEED CREATE WALLET BEFORE SPAWN SERVER, Unable to delete folder if server is on
     // run wallet and save on world]
     match type_wallet.as_str() {
@@ -69,7 +69,7 @@ fn using_wallet(world: &mut TestingWorld, type_wallet: String) {
             copy_dir_to(src_wallet, wallet_data.as_path())
                 .expect("Can't copy wallet_data into .epic/network");
 
-            wait_for(5);
+            wait_for(5).await;
 
             // 2. Chain copy and paste step
             let specif_chain = format!("{}/chain_data", stored_wallets.clone());
@@ -85,7 +85,7 @@ fn using_wallet(world: &mut TestingWorld, type_wallet: String) {
             copy_dir_to(src_chain, chain_data.as_path())
                 .expect("Can't copy chain_data into .epic/network");
 
-            wait_for(5);
+            wait_for(5).await;
 
             // 3. get passphrase from stored wallet
             let wallet_restore = get_restore_command(
@@ -341,13 +341,13 @@ fn check_new_transactions(world: &mut TestingWorld, number_transactions: u32) {
 }
 
 #[then(expr = "I kill all running epic systems")]
-fn kill_all_childs(world: &mut TestingWorld) {
+async fn kill_all_childs(world: &mut TestingWorld) {
     world.miner.kill().expect("Miner wasn't running");
     world.wallet.kill().expect("Wallet wasn't running");
     world.server.kill().expect("Server wasn't running");
 
     println!("--------------- FINISH SCENARIO ---------------");
-    wait_for(5)
+    wait_for(5).await
 }
 
 #[when(expr = "I {word} the {word} transaction")]
