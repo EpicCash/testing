@@ -4,3 +4,4 @@ Cargo.lock
 *.txt
 .env
 /stored_wallets
+binaries
