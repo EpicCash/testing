@@ -1,5 +1,7 @@
 use cucumber::{given, then, when, WorldInit};
+use epic_util::file::copy_dir_to;
 use std::fs::remove_file;
+use std::path::Path;
 use std::time::Instant;
 use testing::types::{InfoWallet, OutputList, PackTransaction, TestingWorld, WalletInformation};
 extern crate dotenv;
@@ -8,9 +10,9 @@ use std::env;
 
 use testing::commands::{
     check_spendable, confirm_transaction, create_wallet, get_number_outputs,
-    get_number_transactions_txs, get_restore_command, info_wallet, receive_finalize_coins,
-    recover_wallet_shell, remove_wallet_path, scan_wallet, send_coins_smallest, spawn_miner,
-    spawn_network, spawn_wallet_listen,
+    get_number_transactions_txs, get_restore_command, get_wallet_chain_data, info_wallet,
+    receive_finalize_coins, recover_wallet_shell, remove_wallet_chain_path, scan_wallet,
+    send_coins_smallest, spawn_miner, spawn_network, spawn_wallet_listen,
 };
 use testing::utils::{
     generate_vec_to_sent, get_http_wallet, get_passphrase, get_test_configuration,
@@ -45,9 +47,47 @@ async fn using_network(world: &mut TestingWorld, str_chain: String) {
 fn using_wallet(world: &mut TestingWorld, type_wallet: String) {
     // NEED CREATE WALLET BEFORE SPAWN SERVER, Unable to delete folder if server is on
     // run wallet and save on world]
-    assert_eq!("stored-huge", type_wallet.as_str());
     match type_wallet.as_str() {
         "stored-huge" | "stored-tiny" => {
+            // 1. Wallet copy and paste step
+            let stored_wallets = env::var("STORED_WALLETS").expect("Can't get the stored_wallets folder, see Epic [drive](https://drive.google.com/drive/folders/14gq0Mh8sL_I9XYuTWSrJAwxiR0CkhcPT)");
+            let specif_wallet = match type_wallet.as_str() {
+                "stored-huge" => format!("{}/wallet_data_huge", stored_wallets.clone()),
+                "stored-tiny" | _ => {
+                    format!("{}/wallet_data_tiny", stored_wallets.clone())
+                }
+            };
+            let src_wallet = Path::new(&specif_wallet);
+
+            // get wallet_data path
+            let wallet_data = get_wallet_chain_data(&world.chain_type, "wallet");
+
+            // remove wallet_data
+            remove_wallet_chain_path(&world.chain_type, "wallet");
+
+            // copy specifc wallet_data to default dest
+            copy_dir_to(src_wallet, wallet_data.as_path())
+                .expect("Can't copy wallet_data into .epic/network");
+
+            wait_for(5);
+
+            // 2. Chain copy and paste step
+            let specif_chain = format!("{}/chain_data", stored_wallets.clone());
+            let src_chain = Path::new(&specif_chain);
+
+            // get chain_data path
+            let chain_data = get_wallet_chain_data(&world.chain_type, "chain");
+
+            // remove chain_data
+            remove_wallet_chain_path(&world.chain_type, "chain");
+
+            // copy specifc wallet_data to default dest
+            copy_dir_to(src_chain, chain_data.as_path())
+                .expect("Can't copy chain_data into .epic/network");
+
+            wait_for(5);
+
+            // 3. get passphrase from stored wallet
             let wallet_restore = get_restore_command(
                 &world.chain_type,
                 world.wallet_binary.as_str(),
@@ -249,7 +289,7 @@ fn compare_info(world: &mut TestingWorld, wallet_command: String) {
 
 #[when(expr = "I delete the wallet folder")]
 fn delete_wallet_data(world: &mut TestingWorld) {
-    remove_wallet_path(&world.chain_type);
+    remove_wallet_chain_path(&world.chain_type, "wallet");
 }
 
 #[when(expr = "I make the recover in my wallet")]

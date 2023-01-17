@@ -1,14 +1,17 @@
 use cucumber::{given, then, when, WorldInit};
-use testing::types::{InfoWallet, TestingWorld, WalletInformation};
+use epic_util::file::copy_dir_to;
+use testing::types::{InfoWallet, OutputList, TestingWorld, WalletInformation};
 extern crate dotenv;
 use dotenv::dotenv;
 use std::env;
-use std::fs::remove_file;
+use std::fs::{remove_dir_all, remove_file};
+use std::path::Path;
 
 use testing::commands::{
-    confirm_transaction, create_wallet, get_number_transactions_txs, info_wallet,
-    receive_finalize_coins, recover_wallet_shell, remove_wallet_path, send_coins_smallest,
-    spawn_miner, spawn_network, spawn_wallet_listen,
+    confirm_transaction, create_wallet, get_number_outputs, get_number_transactions_txs,
+    get_restore_command, get_wallet_chain_data, info_wallet, receive_finalize_coins,
+    recover_wallet_shell, remove_wallet_chain_path, send_coins_smallest, spawn_miner,
+    spawn_network, spawn_wallet_listen,
 };
 use testing::utils::{
     generate_file_name, generate_response_file_name, get_home_chain, get_http_wallet,
@@ -34,28 +37,143 @@ async fn using_network(world: &mut TestingWorld, str_chain: String) {
     // config epic-server.toml with custom configuration
     get_test_configuration(&world.chain_type);
     // Wait the epic-servet.toml work
-    wait_for(5).await;
-
-    // NEED CREATE WALLET BEFORE SPAWN SERVER, Unable to delete folder if server is on
-    // run wallet and save on world
-    let wallet_init = create_wallet(
-        &world.chain_type,
-        world.wallet_binary.as_str(),
-        world.password.as_str(),
-    );
-
-    world.passphrase = get_passphrase(&wallet_init);
+    wait_for(5);
 }
 
-#[then(expr = "I run and save info command")]
-fn info_save(world: &mut TestingWorld) {
-    let info_vec = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
-    world.info_command = InfoWallet::from(info_vec);
+// I use a stored/new wallet
+#[given(expr = "I use a {string} wallet")]
+fn using_wallet(world: &mut TestingWorld, type_wallet: String) {
+    // NEED CREATE WALLET BEFORE SPAWN SERVER, Unable to delete folder if server is on
+    // run wallet and save on world]
+    match type_wallet.as_str() {
+        "stored-huge" | "stored-tiny" => {
+            // 1. Wallet copy and paste step
+            let stored_wallets = env::var("STORED_WALLETS").expect("Can't get the stored_wallets folder, see Epic [drive](https://drive.google.com/drive/folders/14gq0Mh8sL_I9XYuTWSrJAwxiR0CkhcPT)");
+            let specif_wallet = match type_wallet.as_str() {
+                "stored-huge" => format!("{}/wallet_data_huge", stored_wallets.clone()),
+                "stored-tiny" | _ => {
+                    format!("{}/wallet_data_tiny", stored_wallets.clone())
+                }
+            };
+            let src_wallet = Path::new(&specif_wallet);
+
+            // get wallet_data path
+            let wallet_data = get_wallet_chain_data(&world.chain_type, "wallet");
+
+            // remove wallet_data
+            remove_wallet_chain_path(&world.chain_type, "wallet");
+
+            // copy specifc wallet_data to default dest
+            copy_dir_to(src_wallet, wallet_data.as_path())
+                .expect("Can't copy wallet_data into .epic/network");
+
+            wait_for(5);
+
+            // 2. Chain copy and paste step
+            let specif_chain = format!("{}/chain_data", stored_wallets.clone());
+            let src_chain = Path::new(&specif_chain);
+
+            // get chain_data path
+            let chain_data = get_wallet_chain_data(&world.chain_type, "chain");
+
+            // remove chain_data
+            remove_wallet_chain_path(&world.chain_type, "chain");
+
+            // copy specifc wallet_data to default dest
+            copy_dir_to(src_chain, chain_data.as_path())
+                .expect("Can't copy chain_data into .epic/network");
+
+            wait_for(5);
+
+            // 3. get passphrase from stored wallet
+            let wallet_restore = get_restore_command(
+                &world.chain_type,
+                world.wallet_binary.as_str(),
+                world.password.as_str(),
+            );
+            let passphrase = get_passphrase(&wallet_restore);
+            assert!(passphrase.len() > 0, "Error, passphrase is: {passphrase}");
+            world.passphrase = passphrase;
+            //todo!("Copy and paste the chain_data and wallet_data into .epic/chain_type folder")
+        }
+        "new" => {
+            let wallet_init = create_wallet(
+                &world.chain_type,
+                world.wallet_binary.as_str(),
+                world.password.as_str(),
+            );
+
+            world.passphrase = get_passphrase(&wallet_init);
+        }
+        "passphrase-huge" | "passphrase-tiny" => {
+            todo!(
+                "Copy and paste the chain_data into .epic/chain_type folder
+				Open a file that saves a passphrase of huge/tiny wallet and read.
+				Run recovery process"
+            )
+        }
+        _ => panic!("This {type_wallet} type of wallet has not yet been implemented!"),
+    };
+}
+
+#[given(expr = "I have a wallet in LMDB")]
+fn check_lmdb_wallet(world: &mut TestingWorld) {
+    // get wallet_data
+    let mut wallet_data = get_wallet_chain_data(&world.chain_type, "wallet");
+    wallet_data.push("db");
+
+    // get sqlite path
+    let mut wallet_data_sqlite = wallet_data.clone();
+    wallet_data_sqlite.push("sqlite");
+
+    // get lmdb path
+    wallet_data.push("lmdb");
+
+    if wallet_data_sqlite.exists() {
+        remove_dir_all(wallet_data_sqlite).expect("Can't remove wallet_data/db/sqlite")
+    }
+
+    assert!(wallet_data.exists());
+}
+
+#[then(expr = "I run and save {word} command")]
+fn command_save(world: &mut TestingWorld, wallet_command: String) {
+    match wallet_command.as_str() {
+        "info" => {
+            let info_vec = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
+            println!("\nSAVE INFO: {:#?}", info_vec);
+            world.info_command = InfoWallet::from(info_vec);
+        }
+        "txs" => {
+            let txs_vec = get_number_transactions_txs(
+                &world.chain_type,
+                &world.wallet_binary,
+                &world.password,
+            );
+            println!("\nSAVE TXS: {:#?}", txs_vec);
+            world.txs_command = WalletInformation::from(txs_vec);
+        }
+        "outputs" | "outputs_full_history" => {
+            // if we want full_history
+            let show_full_history = wallet_command.as_str() == "outputs_full_history";
+
+            let outputs_vec = get_number_outputs(
+                &world.chain_type,
+                &world.wallet_binary,
+                &world.password,
+                show_full_history,
+            );
+            println!("\nSAVE OUTPUTS: {:#?}", outputs_vec);
+            world.outputs_command = OutputList::from(outputs_vec);
+        }
+
+        _ => println!("{wallet_command} is not a wallet command or not implemented yet"),
+    };
 }
 
 #[when(expr = "I delete the wallet folder")]
 fn delete_wallet_data(world: &mut TestingWorld) {
-    remove_wallet_path(&world.chain_type);
+    remove_wallet_chain_path(&world.chain_type, "wallet");
 }
 
 #[when(expr = "I make the recover in my wallet")]
@@ -346,7 +464,70 @@ fn check_exist_new_db_file(world: &mut TestingWorld) {
     home_dir.push("wallet_data");
     home_dir.push("db");
     home_dir.push("sqlite");
-    assert!(home_dir.is_dir())
+
+    assert!(home_dir.is_dir());
+
+    // I have the same information
+    let wallet_command = String::from("info");
+    match wallet_command.as_str() {
+        "information" | "info" => {
+            let info_now = InfoWallet::from(info_wallet(
+                &world.chain_type,
+                &world.wallet_binary,
+                &world.password,
+            ));
+            println!(
+                "\nINFO COMP: \nBefore: {:#?} \n After {:#?}",
+                world.info_command, info_now
+            );
+            assert_eq!(
+                world.info_command, info_now,
+                "Testing the before recover {:#?} and after recover {:#?}",
+                world.info_command, info_now
+            )
+        }
+        "transactions" | "txs" => {
+            let txs_now = WalletInformation::from(get_number_transactions_txs(
+                &world.chain_type,
+                &world.wallet_binary,
+                &world.password,
+            ));
+            println!(
+                "\nTXS COMP: \nBefore: {:#?} \n After {:#?}",
+                world.txs_command, txs_now
+            );
+
+            assert!(
+                txs_now.sent_tx == 0
+                    && world.txs_command.confirmed_coinbase == txs_now.confirmed_coinbase,
+                "Testing the before recover {:#?} and after recover {:#?}",
+                world.txs_command,
+                txs_now
+            )
+        }
+        "outputs" | "outputs_full_history" => {
+            let show_full_history = wallet_command.as_str() == "outputs_full_history";
+            let outputs_now = OutputList::from(get_number_outputs(
+                &world.chain_type,
+                &world.wallet_binary,
+                &world.password,
+                show_full_history,
+            ));
+            println!(
+                "\nOUTPUT COMP: \nBefore: {:#?} \n After {:#?}",
+                world.outputs_command, outputs_now
+            );
+
+            let check_outputs = world.outputs_command.eq(&outputs_now);
+
+            assert!(
+                check_outputs,
+                "Testing the before recover {:#?} and after recover {:#?}",
+                world.outputs_command, outputs_now
+            );
+        }
+        _ => println!("{wallet_command} is not a wallet command or not implemented yet"),
+    }
 }
 
 #[tokio::main]
