@@ -9,6 +9,7 @@ Feature: There is a need to validate the floonet environment
 
 	@serial
 	Scenario: Test mining on floonet
+		# We can't mine on the floonet with another algorithm because the floonet node is "onlyrandomx"
 		When I start the node with policy "onlyrandomx"
 		Then The chain is downloaded and synced
 		Given I know the initial height of chain
@@ -26,7 +27,19 @@ Feature: There is a need to validate the floonet environment
 		And I kill all running epic systems
 
 	@serial
+	Scenario: Test chain synchronization on floonet
+		When I start the node with policy "noprogpow"
+		Then The chain is downloaded and synced
+		And I kill all running epic systems
+
+	@serial
 	Scenario: Test connection with other peers on floonet
 		When I start the node with policy "onlyrandomx"
+		Then I am able to see more than one peer connected
+		And I kill all running epic systems
+
+	@serial
+	Scenario: Test connection with other peers on floonet
+		When I start the node with policy "noprogpow"
 		Then I am able to see more than one peer connected
 		And I kill all running epic systems

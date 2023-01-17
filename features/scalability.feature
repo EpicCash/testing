@@ -14,7 +14,7 @@ Feature: Test longevity and stress the systems
     When I start the wallet
     # Test time
     When I make a 5 transactions with http method
-    Then The average transaction time is less than 10 second
+    Then The average transaction time is less than 5 second
     # Test confirm transactions and mine
     When I start the miner
     Then I await confirm the transaction
@@ -42,7 +42,7 @@ Feature: Test longevity and stress the systems
     When I start the wallet
     # Test time
     When I make a 5 transactions with http method
-    Then The average transaction time is less than 10 second
+    Then The average transaction time is less than 5 second
     # Test confirm transactions and mine
     When I start the miner
     Then I await confirm the transaction
@@ -63,7 +63,22 @@ Feature: Test longevity and stress the systems
     Then I kill all running epic systems
 
   @serial
-  Scenario: Test transaction time 1
+  Scenario: Test transaction time 0 - huge
+    Given I use a "stored-huge" wallet
+    When I start the node with policy "onlyrandomx"
+    When I start the wallet
+    When I start the miner
+    When I mine some blocks into my wallet
+    When I make a 2 transactions with http method
+    Then The average transaction time is less than 5 second
+    And I await confirm the transaction
+    And All transactions work
+    And I kill all running epic systems
+
+  @serial
+  Scenario: Test transaction time 1 - huge
+    Given I use a "stored-huge" wallet
+    When I start the node with policy "onlyrandomx"
     When I start the wallet
     When I start the miner
     When I mine some blocks into my wallet
@@ -74,7 +89,9 @@ Feature: Test longevity and stress the systems
     And I kill all running epic systems
 
   @serial
-  Scenario: Test transaction time 2
+  Scenario: Test transaction time 2 - huge
+    Given I use a "stored-huge" wallet
+    When I start the node with policy "onlyrandomx"
     When I start the wallet
     When I start the miner
     When I mine some blocks into my wallet
@@ -83,6 +100,46 @@ Feature: Test longevity and stress the systems
     And I await confirm the transaction
     And All transactions work
     And I kill all running epic systems
+
+  @serial
+  Scenario: Test transaction time 0 - tiny
+    Given I use a "stored-tiny" wallet
+    When I start the node with policy "onlyrandomx"
+    When I start the wallet
+    When I start the miner
+    When I mine some blocks into my wallet
+    When I make a 2 transactions with http method
+    Then The average transaction time is less than 5 second
+    And I await confirm the transaction
+    And All transactions work
+    And I kill all running epic systems
+
+  @serial
+  Scenario: Test transaction time 1 - tiny
+    Given I use a "stored-tiny" wallet
+    When I start the node with policy "onlyrandomx"
+    When I start the wallet
+    When I start the miner
+    When I mine some blocks into my wallet
+    When I make a 20 transactions with http method
+    Then The average transaction time is less than 0.75 second
+    And I await confirm the transaction
+    And All transactions work
+    And I kill all running epic systems
+
+  @serial
+  Scenario: Test transaction time 2 - tiny
+    Given I use a "stored-tiny" wallet
+    When I start the node with policy "onlyrandomx"
+    When I start the wallet
+    When I start the miner
+    When I mine some blocks into my wallet
+    When I make a 100 transactions with self method
+    Then The average transaction time is less than 0.75 second
+    And I await confirm the transaction
+    And All transactions work
+    And I kill all running epic systems
+
 # Scenario planned but not yet done
 #@serial
 #Scenario: Connection multiple nodes
