@@ -1,5 +1,6 @@
 use expectrl;
 use std::fs::remove_dir_all;
+use std::path::PathBuf;
 use std::process::{Child, Command, Output};
 use std::time::{Duration, Instant};
 
@@ -46,21 +47,32 @@ pub fn spawn_network(chain_type: &ChainTypes, binary_path: &str, policy: Option<
     output
 }
 
-/// This function will remove the `.epic/chayn_type/wallet_data`
-pub fn remove_wallet_path(chain_type: &ChainTypes) {
-    let mut wallet_data_path = get_home_chain(chain_type);
-    wallet_data_path.push("wallet_data");
+/// Return chain_data or wallet_data PathBuf
+pub fn get_wallet_chain_data(chain_type: &ChainTypes, wallet_chain: &str) -> PathBuf {
+    let mut general_dest = get_home_chain(chain_type);
 
-    // if wallet_data exist -> remove
-    if wallet_data_path.exists() {
-        remove_dir_all(wallet_data_path).expect("Failed on remove old wallet_data");
+    match wallet_chain {
+        "wallet" => general_dest.push("wallet_data"),
+        "chain" | _ => general_dest.push("chain_data"),
+    };
+
+    general_dest
+}
+
+/// This function will remove the `.epic/chayn_type/wallet_data`
+pub fn remove_wallet_chain_path(chain_type: &ChainTypes, wallet_chain: &str) {
+    let dest = get_wallet_chain_data(chain_type, wallet_chain);
+
+    // if wallet_data/chain_data exist -> remove
+    if dest.exists() {
+        remove_dir_all(dest).expect("Failed on remove old {wallet_chain}");
     }
 }
 /// Run the init command, if the wallet_data exist -> delete and create a new one
 pub fn create_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) -> Output {
     // .epic/user ; .epic/floo or .epic/main
     // if wallet_data exist -> remove
-    remove_wallet_path(chain_type);
+    remove_wallet_chain_path(chain_type, "wallet");
     let wallet = match chain_type {
         ChainTypes::UserTesting => Command::new(binary_path)
             .args(["-p", password, "--usernet", "init"])
