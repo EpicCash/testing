@@ -173,11 +173,12 @@ async fn start_child_general(world: &mut TestingWorld, start_stop: String, epic_
 async fn mine_some_coins(world: &mut TestingWorld) {
     // TODO - Wait for 5~10 blocks
     let mut info = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
-    let mut current_spendable = info.last().expect("Can't get the current spendable!");
-    while current_spendable == &0.0 {
-        wait_for(10).await;
+    let mut current_spendable = InfoWallet::from(info).currently_spendable;
+    let low_limit = 30.0;
+    while current_spendable <= low_limit {
+        wait_for(15).await;
         info = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
-        current_spendable = info.last().expect("Can't get the current spendable!");
+        current_spendable = InfoWallet::from(info).currently_spendable;
     }
 }
 

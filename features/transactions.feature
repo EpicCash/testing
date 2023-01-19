@@ -12,24 +12,27 @@ Feature: Test the methods of transactions and interactions between send, receive
 
 
   @serial
-  Scenario: Test Self send methods 1
+  Scenario: Test Self send methods with 0.0001 coins
     Given I have a wallet with coins
+    Then I run and save txs command
     When I send 0.001 coins with self method
     And I await confirm the transaction
     Then I have 2 new transactions in txs
     And I kill all running epic systems
 
   @serial
-  Scenario: Test HTTP send methods 1
+  Scenario: Test HTTP send methods with 0.0001 coins
     Given I have a wallet with coins
+    Then I run and save txs command
     When I send 0.001 coins with http method
     And I await confirm the transaction
     Then I have 2 new transactions in txs
     And I kill all running epic systems
 
   @serial
-  Scenario: Test Emoji send methods 1
+  Scenario: Test Emoji send methods with 0.0001 coins
     Given I have a wallet with coins
+    Then I run and save txs command
     When I send 0.001 coins with emoji method
     And I receive the emoji transaction
     And I finalize the emoji transaction
@@ -38,8 +41,9 @@ Feature: Test the methods of transactions and interactions between send, receive
     And I kill all running epic systems
 
   @serial
-  Scenario: Test File send methods 1
+  Scenario: Test File send methods with 0.0001 coins
     Given I have a wallet with coins
+    Then I run and save txs command
     When I send 0.001 coins with file method
     And I receive the file transaction
     And I finalize the file transaction
@@ -48,24 +52,27 @@ Feature: Test the methods of transactions and interactions between send, receive
     And I kill all running epic systems
 
   @serial
-  Scenario: Test Self send methods 2
+  Scenario: Test Self send methods with 14 coins
     Given I have a wallet with coins
+    Then I run and save txs command
     When I send 14 coins with self method
     And I await confirm the transaction
     Then I have 2 new transactions in txs
     And I kill all running epic systems
 
   @serial
-  Scenario: Test HTTP send methods 2
+  Scenario: Test HTTP send methods with 14 coins
     Given I have a wallet with coins
+    Then I run and save txs command
     When I send 14 coins with http method
     And I await confirm the transaction
     Then I have 2 new transactions in txs
     And I kill all running epic systems
 
   @serial
-  Scenario: Test Emoji send methods 2
+  Scenario: Test Emoji send methods with 14 coins
     Given I have a wallet with coins
+    Then I run and save txs command
     When I send 14 coins with emoji method
     And I receive the emoji transaction
     And I finalize the emoji transaction
@@ -74,8 +81,9 @@ Feature: Test the methods of transactions and interactions between send, receive
     And I kill all running epic systems
 
   @serial
-  Scenario: Test File send methods 2
+  Scenario: Test File send methods with 14 coins
     Given I have a wallet with coins
+    Then I run and save txs command
     When I send 14 coins with file method
     And I receive the file transaction
     And I finalize the file transaction
@@ -84,24 +92,27 @@ Feature: Test the methods of transactions and interactions between send, receive
     And I kill all running epic systems
 
   @serial
-  Scenario: Test Self send methods 3
+  Scenario: Test Self send methods with 0.00000001 coins
     Given I have a wallet with coins
+    Then I run and save txs command
     When I send 0.00000001 coins with self method
     And I await confirm the transaction
     Then I have 2 new transactions in txs
     And I kill all running epic systems
 
   @serial
-  Scenario: Test HTTP send methods 3
+  Scenario: Test HTTP send methods with 0.00000001 coins
     Given I have a wallet with coins
+    Then I run and save txs command
     When I send 0.00000001 coins with http method
     And I await confirm the transaction
     Then I have 2 new transactions in txs
     And I kill all running epic systems
 
   @serial
-  Scenario: Test Emoji send methods 3
+  Scenario: Test Emoji send methods with 0.00000001 coins
     Given I have a wallet with coins
+    Then I run and save txs command
     When I send 0.00000001 coins with emoji method
     And I receive the emoji transaction
     And I finalize the emoji transaction
@@ -110,8 +121,9 @@ Feature: Test the methods of transactions and interactions between send, receive
     And I kill all running epic systems
 
   @serial
-  Scenario: Test File send methods 3
+  Scenario: Test File send methods with 0.00000001 coins
     Given I have a wallet with coins
+    Then I run and save txs command
     When I send 0.00000001 coins with file method
     And I receive the file transaction
     And I finalize the file transaction
@@ -120,8 +132,9 @@ Feature: Test the methods of transactions and interactions between send, receive
     And I kill all running epic systems
 
   @serial
-  Scenario: Test Self send methods 4
+  Scenario: Test Self send methods with 2 transactions
     Given I have a wallet with coins
+    Then I run and save txs command
     When I send 0.00000001 coins with self method
     When I send 14 coins with self method
     And I await confirm the transaction
@@ -129,8 +142,9 @@ Feature: Test the methods of transactions and interactions between send, receive
     And I kill all running epic systems
 
   @serial
-  Scenario: Test HTTP send methods 4
+  Scenario: Test HTTP send methods with 2 transactions
     Given I have a wallet with coins
+    Then I run and save txs command
     When I send 0.00000001 coins with http method
     When I send 14 coins with http method
     And I await confirm the transaction
@@ -138,9 +152,12 @@ Feature: Test the methods of transactions and interactions between send, receive
     And I kill all running epic systems
 
   @serial
-  Scenario: Test Emoji send methods 4
+  Scenario: Test Emoji send methods with 2 transactions
     Given I have a wallet with coins
+    Then I run and save txs command
     When I send 0.00000001 coins with emoji method
+    And I receive the emoji transaction
+    And I finalize the emoji transaction
     When I send 14 coins with emoji method
     And I receive the emoji transaction
     And I finalize the emoji transaction
@@ -149,9 +166,12 @@ Feature: Test the methods of transactions and interactions between send, receive
     And I kill all running epic systems
 
   @serial
-  Scenario: Test File send methods 4
+  Scenario: Test File send methods with 2 transactions
     Given I have a wallet with coins
+    Then I run and save txs command
     When I send 0.00000001 coins with file method
+    And I receive the file transaction
+    And I finalize the file transaction
     When I send 14 coins with file method
     And I receive the file transaction
     And I finalize the file transaction
@@ -160,8 +180,9 @@ Feature: Test the methods of transactions and interactions between send, receive
     And I kill all running epic systems
 
   @serial
-  Scenario: Test All send methods
+  Scenario: Test All send methods with 0.00000001 coins
     Given I have a wallet with coins
+    Then I run and save txs command
     When I send 0.00000001 coins with file method
     And I receive the file transaction
     And I finalize the file transaction

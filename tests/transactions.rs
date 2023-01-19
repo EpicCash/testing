@@ -3,11 +3,12 @@ extern crate dotenv;
 use cucumber::{given, then, when, WorldInit};
 use dotenv::dotenv;
 use std::env;
-use testing::types::{TestingWorld, WalletInformation};
+use testing::types::{InfoWallet, OutputList, TestingWorld, WalletInformation};
 
 use testing::commands::{
-    confirm_transaction, create_wallet, get_number_transactions_txs, info_wallet,
-    receive_finalize_coins, send_coins_smallest, spawn_miner, spawn_network, spawn_wallet_listen,
+    confirm_transaction, create_wallet, get_number_outputs, get_number_transactions_txs,
+    info_wallet, receive_finalize_coins, send_coins_smallest, spawn_miner, spawn_network,
+    spawn_wallet_listen,
 };
 use testing::utils::{
     generate_file_name, generate_response_file_name, get_http_wallet, get_passphrase,
@@ -51,11 +52,12 @@ async fn using_network(world: &mut TestingWorld, str_chain: String) {
 async fn mine_some_coins(world: &mut TestingWorld) {
     // TODO - Wait for 5~10 blocks
     let mut info = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
-    let mut current_spendable = info.last().expect("Can't get the current spendable!");
-    while current_spendable == &0.0 {
-        wait_for(30).await;
+    let mut current_spendable = InfoWallet::from(info).currently_spendable;
+    let low_limit = 30.0;
+    while current_spendable <= low_limit {
+        wait_for(15).await;
         info = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
-        current_spendable = info.last().expect("Can't get the current spendable!");
+        current_spendable = InfoWallet::from(info).currently_spendable;
     }
 }
 
@@ -111,22 +113,43 @@ fn check_coins_in_wallet(world: &mut TestingWorld) {
     assert!(current_spendable > &0.0)
 }
 
-#[when(expr = "I send {word} coins with {word} method")]
-fn send_coins(world: &mut TestingWorld, amount: String, method: String) {
-    // TODO destination (File and HTTP methods)
+#[then(expr = "I run and save {word} command")]
+fn command_save(world: &mut TestingWorld, wallet_command: String) {
+    match wallet_command.as_str() {
+        "info" => {
+            let info_vec = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
+            println!("\nSAVE INFO: {:#?}", info_vec);
+            world.info_command = InfoWallet::from(info_vec);
+        }
+        "txs" => {
+            let txs_vec = get_number_transactions_txs(
+                &world.chain_type,
+                &world.wallet_binary,
+                &world.password,
+            );
+            println!("\nSAVE TXS: {:#?}", txs_vec);
+            world.txs_command = WalletInformation::from(txs_vec);
+        }
+        "outputs" | "outputs_full_history" => {
+            // if we want full_history
+            let show_full_history = wallet_command.as_str() == "outputs_full_history";
 
-    // Update transactions information in WalletInformation
-    let transaction_info =
-        get_number_transactions_txs(&world.chain_type, &world.wallet_binary, &world.password);
-    let new_transactions_information = WalletInformation {
-        sent_tx: transaction_info[0],
-        received_tx: transaction_info[1],
-        confirmed_coinbase: transaction_info[2],
-        sent_path: String::new(),
-        receive_path: String::new(),
+            let outputs_vec = get_number_outputs(
+                &world.chain_type,
+                &world.wallet_binary,
+                &world.password,
+                show_full_history,
+            );
+            println!("\nSAVE OUTPUTS: {:#?}", outputs_vec);
+            world.outputs_command = OutputList::from(outputs_vec);
+        }
+
+        _ => println!("{wallet_command} is not a wallet command or not implemented yet"),
     };
-    world.transactions = new_transactions_information;
+}
 
+#[when(expr = "I send {word} coins with {word} method")]
+async fn send_coins(world: &mut TestingWorld, amount: String, method: String) {
     // If method is HTTP or file, send command needs a destination
     let send_output = match method.as_str() {
         "http" => {
@@ -187,7 +210,11 @@ fn send_coins(world: &mut TestingWorld, amount: String, method: String) {
 
         _ => panic!("Method not found!"),
     };
-    assert!(send_output.status.success())
+
+    wait_for(2).await;
+    if !send_output.status.success() {
+        panic!("Error on send proceess, output: {send_output:#?}")
+    }
 }
 
 #[when(expr = "I await confirm the transaction")]
@@ -201,21 +228,18 @@ fn check_new_transactions(world: &mut TestingWorld, number_transactions: u32) {
     // Update transactions information in WalletInformation
     let transaction_info =
         get_number_transactions_txs(&world.chain_type, &world.wallet_binary, &world.password);
-    let new_info = WalletInformation {
-        sent_tx: transaction_info[0],
-        received_tx: transaction_info[1],
-        confirmed_coinbase: transaction_info[2],
-        sent_path: String::new(),
-        receive_path: String::new(),
-    };
+    let new_info = WalletInformation::from(transaction_info);
+    println!("-------------------\n{new_info:?}\n-------------------");
+
+    println!("OLD: {:?}", world.txs_command);
     let int_number = number_transactions / 2;
 
     // Sent tx
-    assert_eq!(world.transactions.sent_tx + int_number, new_info.sent_tx);
+    assert_eq!(world.txs_command.sent_tx + int_number, new_info.sent_tx);
 
     // Received tx
     assert_eq!(
-        world.transactions.received_tx + int_number,
+        world.txs_command.received_tx + int_number,
         new_info.received_tx
     );
 }

@@ -21,25 +21,25 @@ Feature: There is a need to validate the floonet environment
 		And I kill all running epic systems
 
 	@serial
-	Scenario: Test chain synchronization on floonet
+	Scenario: Test chain synchronization on floonet with onlyrandomx policy
 		When I start the node with policy "onlyrandomx"
 		Then The chain is downloaded and synced
 		And I kill all running epic systems
 
 	@serial
-	Scenario: Test chain synchronization on floonet
+	Scenario: Test chain synchronization on floonet with noprogpow policy
 		When I start the node with policy "noprogpow"
 		Then The chain is downloaded and synced
 		And I kill all running epic systems
 
 	@serial
-	Scenario: Test connection with other peers on floonet
+	Scenario: Test connection with other peers on floonet with onlyrandomx policy
 		When I start the node with policy "onlyrandomx"
 		Then I am able to see more than one peer connected
 		And I kill all running epic systems
 
 	@serial
-	Scenario: Test connection with other peers on floonet
+	Scenario: Test connection with other peers on floonet with noprogpow policy
 		When I start the node with policy "noprogpow"
 		Then I am able to see more than one peer connected
 		And I kill all running epic systems
