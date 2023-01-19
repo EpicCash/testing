@@ -109,10 +109,7 @@ async fn check_connected_peers(world: &mut TestingWorld) {
         let msg_list_of_peers = get_list_peers(&world.chain_type, &world.server_binary);
         out_height = get_height_from_list_peers(&msg_list_of_peers);
     }
-    println!(
-        "\nHeight: {:?} -- Peers: {:?}\n",
-        out_height, msg_list_of_peers
-    );
+
     assert!(out_height.len() > 0)
 }
 

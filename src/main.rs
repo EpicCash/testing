@@ -1,7 +1,7 @@
 use testing::commands::{
     confirm_transaction, send_coins_smallest, spawn_miner, spawn_network, spawn_wallet_listen,
 };
-use testing::types::{BigWalletWorld, ChildProcess, PackTransaction};
+use testing::types::{ChildProcess, PackTransaction};
 
 use rand::{self, distributions::Uniform, Rng};
 use std::io::prelude::*;
@@ -172,5 +172,5 @@ async fn main() {
     childrens.miner.kill().expect("Can't kill miner!");
     childrens.server.kill().expect("Can't kill server!");
     childrens.wallet.kill().expect("Can't kill wallet!");
-    println!("\n\n---FINISH!---\n\n")
+    println!("\n\n---FINISH!---")
 }
