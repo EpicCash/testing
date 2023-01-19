@@ -7,13 +7,13 @@ Feature: Verify the longevity of a wallet, checking information in the chain ref
     And I am using the "usernet" network
 
   @serial
-  Scenario: Testing the operation of a new wallet - 1
+  Scenario: Testing the operation of a new wallet with 50 coins and 3 transactions
     Given I use a "new" wallet
     When I start the node with policy "onlyrandomx"
     When I start the wallet
     And I start the miner
     # 19 >= 0.001 + 3 + 15
-    And I mine 19 coins into my wallet
+    And I mine 50 coins into my wallet
     # Test a float value < 1.
     When I send 0.001 coins with http method
     # Test an amount smaller than a block, < approximately 14.52 coins.
@@ -30,19 +30,19 @@ Feature: Verify the longevity of a wallet, checking information in the chain ref
     When I stop the node
 
   @serial
-  Scenario: Testing the operation of a new wallet - 2
+  Scenario: Testing the operation of a new wallet with 100 coins and 3 transactions
     Given I use a "new" wallet
     When I start the node with policy "onlyrandomx"
     When I start the wallet
     And I start the miner
     # 60 >= 15.0000001 + 14 + 30
-    And I mine 60 coins into my wallet
+    And I mine 100 coins into my wallet
     # Test a float value < 1.
     When I send 15.0000001 coins with self method
     # Test an amount smaller than a block, < approximately 14.52 coins.
     And I send 14 coins with self method
     # Test a value greater than one block, to use more than 1 output to create a new transaction.
-    And I send 30 coins with self method
+    And I send 25 coins with self method
     Then I await confirm the transaction
     When I stop the miner
     And I stop the wallet
@@ -53,7 +53,7 @@ Feature: Verify the longevity of a wallet, checking information in the chain ref
     When I stop the node
 
   @serial
-  Scenario: Testing the operation of a tiny wallet - 1
+  Scenario: Testing the operation of a tiny wallet with 19 coins and 3 transactions
     Given I use a "stored-tiny" wallet
     When I start the node with policy "onlyrandomx"
     When I start the wallet
@@ -76,7 +76,7 @@ Feature: Verify the longevity of a wallet, checking information in the chain ref
     When I stop the node
 
   @serial
-  Scenario: Testing the operation of a tiny wallet - 2
+  Scenario: Testing the operation of a tiny wallet with 60 coins and 3 transactions
     Given I use a "stored-tiny" wallet
     When I start the node with policy "onlyrandomx"
     When I start the wallet
@@ -99,7 +99,7 @@ Feature: Verify the longevity of a wallet, checking information in the chain ref
     When I stop the node
 
   @serial
-  Scenario: Testing the operation of a huge wallet - 1
+  Scenario: Testing the operation of a huge wallet with 19 coins and 3 transactions
     Given I use a "stored-huge" wallet
     When I start the node with policy "onlyrandomx"
     When I start the wallet
@@ -122,7 +122,7 @@ Feature: Verify the longevity of a wallet, checking information in the chain ref
     When I stop the node
 
   @serial
-  Scenario: Testing the operation of a huge wallet - 2
+  Scenario: Testing the operation of a huge wallet with 60 coins and 3 transactions
     Given I use a "stored-huge" wallet
     When I start the node with policy "onlyrandomx"
     When I start the wallet
@@ -145,7 +145,7 @@ Feature: Verify the longevity of a wallet, checking information in the chain ref
     When I stop the node
 
   @serial
-  Scenario: Test if wallet change itself to new DB - tiny
+  Scenario: Test if tiny wallet change itself to new DB with onlyrandomx policy
     Given I use a "stored-tiny" wallet
     When I start the node with policy "onlyrandomx"
     Given I have a wallet in LMDB
@@ -154,7 +154,7 @@ Feature: Verify the longevity of a wallet, checking information in the chain ref
     And I kill all running epic systems
 
   @serial
-  Scenario: Test if wallet change itself to new DB - tiny
+  Scenario: Test if tiny wallet change itself to new DB with noprogpow policy
     Given I use a "stored-tiny" wallet
     When I start the node with policy "noprogpow"
     Given I have a wallet in LMDB
@@ -163,7 +163,16 @@ Feature: Verify the longevity of a wallet, checking information in the chain ref
     And I kill all running epic systems
 
   @serial
-  Scenario: Test if wallet change itself to new DB - huge
+  Scenario: Test if huge wallet change itself to new DB with noprogpow policy
+    Given I use a "stored-huge" wallet
+    When I start the node with policy "noprogpow"
+    Given I have a wallet in LMDB
+    Then I run and save info command
+    And I check if wallet change to new DB
+    And I kill all running epic systems
+
+  @serial
+  Scenario: Test if huge wallet change itself to new DB with onlyrandomx policy
     Given I use a "stored-huge" wallet
     When I start the node with policy "noprogpow"
     Given I have a wallet in LMDB

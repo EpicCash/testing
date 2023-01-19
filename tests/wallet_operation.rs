@@ -15,7 +15,7 @@ use testing::commands::{
 };
 use testing::utils::{
     generate_file_name, generate_response_file_name, get_home_chain, get_http_wallet,
-    get_passphrase, get_test_configuration, str_to_chain_type, wait_for,
+    get_passphrase, get_test_configuration, my_async_function, str_to_chain_type, wait_for,
 };
 
 //Given The epic-server binary is at /home/ba/Desktop/EpicV3/epic/target/release/epic
@@ -104,6 +104,8 @@ async fn using_wallet(world: &mut TestingWorld, type_wallet: String) {
             );
 
             world.passphrase = get_passphrase(&wallet_init);
+            let print_output = my_async_function(&world.passphrase).await;
+            println!("Saved passphrase: {print_output:?}")
         }
         "passphrase-huge" | "passphrase-tiny" => {
             todo!(
@@ -249,7 +251,7 @@ async fn start_child_general(world: &mut TestingWorld, start_stop: String, epic_
 async fn mine_some_coins(world: &mut TestingWorld, quantity: String) {
     // TODO - Wait for 5~10 blocks
     let mut info = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
-    let mut current_spendable = info.last().expect("Can't get the current spendable!");
+    let mut current_spendable = InfoWallet::from(info).currently_spendable;
     let low_limit = match quantity.as_str() {
         "some" => 0.0,
         _ => {
@@ -257,10 +259,10 @@ async fn mine_some_coins(world: &mut TestingWorld, quantity: String) {
             number_quant
         }
     };
-    while current_spendable <= &low_limit {
+    while current_spendable <= low_limit {
         wait_for(15).await;
         info = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
-        current_spendable = info.last().expect("Can't get the current spendable!");
+        current_spendable = InfoWallet::from(info).currently_spendable;
     }
 }
 
@@ -369,7 +371,9 @@ fn send_coins(world: &mut TestingWorld, amount: String, method: String) {
 
         _ => panic!("Method not found!"),
     };
-    assert!(send_output.status.success())
+    if !send_output.status.success() {
+        panic!("Error on send proceess, output: {send_output:#?}")
+    }
 }
 
 //I have 2 new transactions in txs
@@ -388,12 +392,17 @@ fn check_new_transactions(world: &mut TestingWorld, number_transactions: u32) {
     let int_number = number_transactions / 2;
 
     // Sent tx
-    assert_eq!(world.transactions.sent_tx + int_number, new_info.sent_tx);
+    assert_eq!(
+        world.transactions.sent_tx + int_number,
+        new_info.sent_tx,
+        "Error in sent"
+    );
 
     // Received tx
     assert_eq!(
         world.transactions.received_tx + int_number,
-        new_info.received_tx
+        new_info.received_tx,
+        "Error in receive"
     );
 }
 

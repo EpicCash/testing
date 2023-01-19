@@ -6,6 +6,7 @@ use chrono::{
 use dirs::home_dir;
 use log::Level;
 use rand::{self, distributions::Uniform, Rng};
+use std::fs::remove_dir_all;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::process::Output;
@@ -135,6 +136,12 @@ pub fn change_server_toml_by_chain(toml_path: PathBuf, chain_type: &ChainTypes) 
 
 /// Generate the .epic folder, epic-server.toml, .api_secret and change the toml to special configuration
 pub fn get_test_configuration(chain_type: &ChainTypes) {
+    let mut home_path = get_home_chain(chain_type);
+    home_path.push("chain_data");
+
+    remove_dir_all(home_path)
+        .unwrap_or_else(|e| println!("Error on remove chain_data, error: {e:?}"));
+
     // Just return path, don't change nothing
     let toml_path = generate_toml_path(chain_type);
 
@@ -277,4 +284,9 @@ pub fn generate_vec_to_sent(
         .map(|_| format!("0.{}", rng.sample(&range).to_string()))
         .collect();
     vals
+}
+
+pub async fn my_async_function(string: &str) -> String {
+    // some async code here
+    return string.to_string();
 }

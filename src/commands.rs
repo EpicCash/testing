@@ -87,6 +87,7 @@ pub fn create_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str)
             .output()
             .expect("Failed on init a wallet"),
     };
+    println!("Wallet created: {wallet:?}");
     wallet
 }
 
@@ -235,21 +236,33 @@ pub fn recover_wallet_shell(
     };
 
     let command = format!("{} {} -p {} init -r", wallet_binary_path, network, password);
+    println!("Command: {command}\nPasshphrase: {passphrase}\n");
 
     let mut recover_process = expectrl::spawn(command).expect("Can't run init -r");
     // wait for 60 minutes
     let wait_time = Duration::from_secs(60 * 60);
     recover_process.set_expect_timeout(Some(wait_time));
 
-    recover_process
+    let recover_message = recover_process
         .expect("Please enter your recovery phrase:")
-        .expect("Can't get the recovery mesage");
+        .unwrap_or_else(|e| panic!("Can't get the recovery mesage, error: {:?}", e));
+
+    println!(
+        "Started recovery: {:?}",
+        String::from_utf8(recover_message.as_bytes().to_owned())
+    );
     recover_process
         .send_line(passphrase)
-        .expect("Can't communicate to the child process");
-    recover_process
+        .unwrap_or_else(|e| panic!("Can't communicate to the child process, error: {:?}", e));
+
+    let finish_recover = recover_process
         .expect("Command 'init' completed successfully")
-        .expect("Can't finish recovery process");
+        .unwrap_or_else(|e| panic!("Can't finish recovery process, error: {:?}", e));
+
+    println!(
+        "Finish recovery: {:?}",
+        String::from_utf8(finish_recover.as_bytes().to_owned())
+    );
 
     let kill = recover_process.exit(true);
 
@@ -302,17 +315,23 @@ pub async fn confirm_transaction(chain_type: &ChainTypes, binary_path: &str, pas
     let values_info = info_wallet(chain_type, binary_path, password);
     let struct_values = InfoWallet::from(values_info);
     let mut locked_0 = struct_values.locked_by_previus_transaction;
+    let mut awaiting_0 = struct_values.awaiting_finalization;
     while t0.elapsed() < n_minute {
         let values_info = info_wallet(chain_type, binary_path, password);
         let struct_values = InfoWallet::from(values_info);
         let locked = struct_values.locked_by_previus_transaction;
-        if locked > 0.0 {
+        let awaiting = struct_values.awaiting_finalization;
+        if locked > 0.0 && awaiting > 0.0 {
             wait_for(15).await;
         } else {
             if locked_0 > locked && locked != 0.0 {
                 println!("	Reset time, The new info is {:?}", struct_values);
                 t0 = Instant::now();
                 locked_0 = locked.clone();
+            } else if awaiting_0 > awaiting && awaiting != 0.0 {
+                println!("	Reset time, The new info is {:?}", struct_values);
+                t0 = Instant::now();
+                awaiting_0 = awaiting.clone();
             } else {
                 println!(
 					"Can't confirm all transactions, Missing confirmation {:?} coins\n\nWe got this info: {:#?}",
