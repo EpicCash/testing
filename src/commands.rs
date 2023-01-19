@@ -87,7 +87,6 @@ pub fn create_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str)
             .output()
             .expect("Failed on init a wallet"),
     };
-    println!("Wallet created: {wallet:?}");
     wallet
 }
 
@@ -236,7 +235,6 @@ pub fn recover_wallet_shell(
     };
 
     let command = format!("{} {} -p {} init -r", wallet_binary_path, network, password);
-    println!("Command: {command}\nPasshphrase: {passphrase}\n");
 
     let mut recover_process = expectrl::spawn(command).expect("Can't run init -r");
     // wait for 60 minutes
@@ -247,10 +245,6 @@ pub fn recover_wallet_shell(
         .expect("Please enter your recovery phrase:")
         .unwrap_or_else(|e| panic!("Can't get the recovery mesage, error: {:?}", e));
 
-    println!(
-        "Started recovery: {:?}",
-        String::from_utf8(recover_message.as_bytes().to_owned())
-    );
     recover_process
         .send_line(passphrase)
         .unwrap_or_else(|e| panic!("Can't communicate to the child process, error: {:?}", e));
@@ -258,11 +252,6 @@ pub fn recover_wallet_shell(
     let finish_recover = recover_process
         .expect("Command 'init' completed successfully")
         .unwrap_or_else(|e| panic!("Can't finish recovery process, error: {:?}", e));
-
-    println!(
-        "Finish recovery: {:?}",
-        String::from_utf8(finish_recover.as_bytes().to_owned())
-    );
 
     let kill = recover_process.exit(true);
 
@@ -341,10 +330,6 @@ pub async fn confirm_transaction(chain_type: &ChainTypes, binary_path: &str, pas
             }
         }
     }
-    println!(
-        "\n		AFTER CONFIRM {:?}\n\n",
-        info_wallet(chain_type, binary_path, password)
-    )
 }
 
 /// Check if locked coins == 0, await for 2 minutes to break
@@ -529,8 +514,6 @@ pub fn scan_wallet(chain_type: &ChainTypes, binary_path: &str, password: &str) -
             .output()
             .expect("Failed get scan a wallet"),
     };
-
-    println!("CHECK SCAN {:?}", &scan);
 
     // binary to string
     let scan_str = String::from_utf8_lossy(&scan.stdout).into_owned();

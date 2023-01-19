@@ -194,7 +194,7 @@ fn command_save(world: &mut TestingWorld, wallet_command: String) {
     match wallet_command.as_str() {
         "info" => {
             let info_vec = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
-            println!("\nSAVE INFO: {:#?}", info_vec);
+
             world.info_command = InfoWallet::from(info_vec);
         }
         "txs" => {
@@ -203,7 +203,7 @@ fn command_save(world: &mut TestingWorld, wallet_command: String) {
                 &world.wallet_binary,
                 &world.password,
             );
-            println!("\nSAVE TXS: {:#?}", txs_vec);
+
             world.txs_command = WalletInformation::from(txs_vec);
         }
         "outputs" | "outputs_full_history" => {
@@ -216,7 +216,7 @@ fn command_save(world: &mut TestingWorld, wallet_command: String) {
                 &world.password,
                 show_full_history,
             );
-            println!("\nSAVE OUTPUTS: {:#?}", outputs_vec);
+
             world.outputs_command = OutputList::from(outputs_vec);
         }
 
@@ -234,10 +234,7 @@ fn compare_info(world: &mut TestingWorld, wallet_command: String) {
                 &world.wallet_binary,
                 &world.password,
             ));
-            println!(
-                "\nINFO COMP: \nBefore: {:#?} \n After {:#?}",
-                world.info_command, info_now
-            );
+
             assert_eq!(
                 world.info_command, info_now,
                 "Testing the before recover {:#?} and after recover {:#?}",
@@ -250,10 +247,6 @@ fn compare_info(world: &mut TestingWorld, wallet_command: String) {
                 &world.wallet_binary,
                 &world.password,
             ));
-            println!(
-                "\nTXS COMP: \nBefore: {:#?} \n After {:#?}",
-                world.txs_command, txs_now
-            );
 
             assert!(
                 txs_now.sent_tx == 0
@@ -271,10 +264,6 @@ fn compare_info(world: &mut TestingWorld, wallet_command: String) {
                 &world.password,
                 show_full_history,
             ));
-            println!(
-                "\nOUTPUT COMP: \nBefore: {:#?} \n After {:#?}",
-                world.outputs_command, outputs_now
-            );
 
             let check_outputs = world.outputs_command.eq(&outputs_now);
 
@@ -346,9 +335,6 @@ async fn kill_all_childs(world: &mut TestingWorld) {
     world.miner.kill().expect("Miner wasn't running");
     world.wallet.kill().expect("Wallet wasn't running");
     world.server.kill().expect("Server wasn't running");
-
-    println!("--------------- FINISH SCENARIO ---------------");
-    wait_for(5).await
 }
 
 #[when(expr = "I {word} the {word} transaction")]
@@ -463,7 +449,7 @@ async fn send_n_coins(world: &mut TestingWorld, num_transactions: i32, method: S
 #[then(expr = "The average transaction time is less than {float} second")]
 fn average_transactions(world: &mut TestingWorld, secs_compare: f32) {
     let a = &world.dur_transactions;
-    println!("\nAll transaction time: {:?}\n", &a);
+
     let avg: f32;
 
     {
@@ -475,7 +461,7 @@ fn average_transactions(world: &mut TestingWorld, secs_compare: f32) {
 
         avg = sum as f32 / a.len() as f32;
     }
-    println!("\n\nAverage transaction time: {:?} seconds\n\n", avg);
+
     assert!(avg < secs_compare)
 }
 

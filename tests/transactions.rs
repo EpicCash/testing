@@ -118,7 +118,7 @@ fn command_save(world: &mut TestingWorld, wallet_command: String) {
     match wallet_command.as_str() {
         "info" => {
             let info_vec = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
-            println!("\nSAVE INFO: {:#?}", info_vec);
+
             world.info_command = InfoWallet::from(info_vec);
         }
         "txs" => {
@@ -127,7 +127,7 @@ fn command_save(world: &mut TestingWorld, wallet_command: String) {
                 &world.wallet_binary,
                 &world.password,
             );
-            println!("\nSAVE TXS: {:#?}", txs_vec);
+
             world.txs_command = WalletInformation::from(txs_vec);
         }
         "outputs" | "outputs_full_history" => {
@@ -140,7 +140,7 @@ fn command_save(world: &mut TestingWorld, wallet_command: String) {
                 &world.password,
                 show_full_history,
             );
-            println!("\nSAVE OUTPUTS: {:#?}", outputs_vec);
+
             world.outputs_command = OutputList::from(outputs_vec);
         }
 
@@ -229,9 +229,7 @@ fn check_new_transactions(world: &mut TestingWorld, number_transactions: u32) {
     let transaction_info =
         get_number_transactions_txs(&world.chain_type, &world.wallet_binary, &world.password);
     let new_info = WalletInformation::from(transaction_info);
-    println!("-------------------\n{new_info:?}\n-------------------");
 
-    println!("OLD: {:?}", world.txs_command);
     let int_number = number_transactions / 2;
 
     // Sent tx

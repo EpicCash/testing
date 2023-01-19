@@ -285,8 +285,3 @@ pub fn generate_vec_to_sent(
         .collect();
     vals
 }
-
-pub async fn my_async_function(string: &str) -> String {
-    // some async code here
-    return string.to_string();
-}

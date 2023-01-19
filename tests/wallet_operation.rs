@@ -15,7 +15,7 @@ use testing::commands::{
 };
 use testing::utils::{
     generate_file_name, generate_response_file_name, get_home_chain, get_http_wallet,
-    get_passphrase, get_test_configuration, my_async_function, str_to_chain_type, wait_for,
+    get_passphrase, get_test_configuration, str_to_chain_type, wait_for,
 };
 
 //Given The epic-server binary is at /home/ba/Desktop/EpicV3/epic/target/release/epic
@@ -104,8 +104,6 @@ async fn using_wallet(world: &mut TestingWorld, type_wallet: String) {
             );
 
             world.passphrase = get_passphrase(&wallet_init);
-            let print_output = my_async_function(&world.passphrase).await;
-            println!("Saved passphrase: {print_output:?}")
         }
         "passphrase-huge" | "passphrase-tiny" => {
             todo!(
@@ -143,7 +141,6 @@ fn command_save(world: &mut TestingWorld, wallet_command: String) {
     match wallet_command.as_str() {
         "info" => {
             let info_vec = info_wallet(&world.chain_type, &world.wallet_binary, &world.password);
-            println!("\nSAVE INFO: {:#?}", info_vec);
             world.info_command = InfoWallet::from(info_vec);
         }
         "txs" => {
@@ -152,7 +149,6 @@ fn command_save(world: &mut TestingWorld, wallet_command: String) {
                 &world.wallet_binary,
                 &world.password,
             );
-            println!("\nSAVE TXS: {:#?}", txs_vec);
             world.txs_command = WalletInformation::from(txs_vec);
         }
         "outputs" | "outputs_full_history" => {
@@ -165,7 +161,6 @@ fn command_save(world: &mut TestingWorld, wallet_command: String) {
                 &world.password,
                 show_full_history,
             );
-            println!("\nSAVE OUTPUTS: {:#?}", outputs_vec);
             world.outputs_command = OutputList::from(outputs_vec);
         }
 
@@ -485,10 +480,6 @@ fn check_exist_new_db_file(world: &mut TestingWorld) {
                 &world.wallet_binary,
                 &world.password,
             ));
-            println!(
-                "\nINFO COMP: \nBefore: {:#?} \n After {:#?}",
-                world.info_command, info_now
-            );
             assert_eq!(
                 world.info_command, info_now,
                 "Testing the before recover {:#?} and after recover {:#?}",
@@ -501,10 +492,6 @@ fn check_exist_new_db_file(world: &mut TestingWorld) {
                 &world.wallet_binary,
                 &world.password,
             ));
-            println!(
-                "\nTXS COMP: \nBefore: {:#?} \n After {:#?}",
-                world.txs_command, txs_now
-            );
 
             assert!(
                 txs_now.sent_tx == 0
@@ -522,10 +509,6 @@ fn check_exist_new_db_file(world: &mut TestingWorld) {
                 &world.password,
                 show_full_history,
             ));
-            println!(
-                "\nOUTPUT COMP: \nBefore: {:#?} \n After {:#?}",
-                world.outputs_command, outputs_now
-            );
 
             let check_outputs = world.outputs_command.eq(&outputs_now);
 
