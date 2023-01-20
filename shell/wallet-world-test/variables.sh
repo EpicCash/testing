@@ -1,6 +1,5 @@
 export EPIC_SERVER_BINARY=/home/jhelison/Documents/epic/testing/binaries/epic
-export EPIC_WALLET_BINARY=/home/jhelison/Documents/epic/testing/binaries/epic-wallet-3.0.0
-# export EPIC_WALLET_BINARY=/home/jhelison/Documents/epic/testing/binaries/epic-wallet
+export EPIC_WALLET_BINARY=/home/jhelison/Documents/epic/testing/binaries/epic-wallet
 export EPIC_MINER_BINARY=/home/jhelison/Documents/epic/testing/binaries/epic-miner
 export WORLD_NAME=world
 export SERVER_PATH=./server-data
