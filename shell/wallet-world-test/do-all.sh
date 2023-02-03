@@ -11,6 +11,7 @@ for i in {1..3}; do
     # Start the server
     mkdir -p $SERVER_PATH
     $EPIC_SERVER_BINARY --usernet --onlyrandomx > /dev/null &
+    SERVER_PID=$!
 
     ./1-create-wallet-world.sh 10
     ./2-mine-wallets.sh
@@ -53,5 +54,8 @@ for i in {1..3}; do
     ./info_world.sh > ./out/info-lmdb-exp-$i-6.txt
 
     # Clean files and kill all epic processes
+    # Kill all the processes
+    echo "Killing the server"
+    kill $SERVER_PID
     ./clean.sh
 done

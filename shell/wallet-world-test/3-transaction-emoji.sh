@@ -48,7 +48,6 @@ while true; do
     echo "Recieving a emoji transaction with $WALLET_PASSWORD as sender and wallet $RECIEVER_WALLET as reciever"
     RECIEVER_EMOJI=$($EPIC_WALLET_BINARY -c $RANDOM_DIRECTORY -p $RECIEVER_WALLET --usernet receive -m emoji -i $SEND_EMOJI | awk '{split($0,a,"Command"); print a[1]}')
     RECIEVER_EMOJI=$(echo $RECIEVER_EMOJI | sed 's/.*transaction://g')
-    echo "The emoji response is: $RECIEVER_EMOJI"
     # Confirm the transaction on the sender
     $EPIC_WALLET_BINARY -c $DIR -p $WALLET_PASSWORD --usernet finalize -m emoji -i $RECIEVER_EMOJI
 
