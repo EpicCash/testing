@@ -1,0 +1,4 @@
+SocksPort 0
+DataDirectory ./data
+HiddenServiceDir ./onion_service_addresses/5av6acumqwwpuqdwn35rsca4a6zjjznro4rolii64yam445reyijteqd
+HiddenServicePort 80 127.0.0.1:23415

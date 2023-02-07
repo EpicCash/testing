@@ -7,55 +7,54 @@ source ./variables.sh
 mkdir -p out
 mkdir -p $SERVER_PATH
 
-for i in {1..3}; do
-    # Start the server
-    mkdir -p $SERVER_PATH
-    $EPIC_SERVER_BINARY --usernet --onlyrandomx > /dev/null &
-    SERVER_PID=$!
 
-    ./1-create-wallet-world.sh 10
-    ./2-mine-wallets.sh
 
-    ./mine-purge-wallet.sh 10
+# Start the server
+mkdir -p $SERVER_PATH
+$EPIC_SERVER_BINARY --usernet --onlyrandomx > /dev/null &
+SERVER_PID=$!
 
-    ./info_world.sh > ./out/info-lmdb-exp-$i-1.txt
+./1-create-wallet-world.sh 10
+./2-mine-wallets.sh
 
-    echo "Exp $i Batch 10 transactions with 15 coins"
+./mine-purge-wallet.sh 10
 
-    ./3-transaction-emoji.sh 15 10
-    ./mine-purge-wallet.sh 5
+./info_world.sh > ./out/info-lmdb-exp-1.txt
 
-    ./info_world.sh > ./out/info-lmdb-exp-$i-2.txt
+echo "Batch 10 transactions with 15 coins"
 
-    echo "Exp $i Batch 20 transactions with 5 coins"
+./3-transaction-emoji.sh 15 10
+./mine-purge-wallet.sh 5
 
-    ./3-transaction-emoji.sh 5 20
-    ./mine-purge-wallet.sh 10
+./info_world.sh > ./out/info-lmdb-exp-2.txt
 
-    ./info_world.sh > ./out/info-lmdb-exp-$i-3.txt
+echo "Batch 20 transactions with 5 coins"
 
-    echo "Exp $i Batch 30 transactions with 1 coins"
+./3-transaction-emoji.sh 5 20
+./mine-purge-wallet.sh 10
 
-    ./3-transaction-emoji.sh 1 30
-    ./mine-purge-wallet.sh 15
+./info_world.sh > ./out/info-lmdb-exp-3.txt
 
-    ./info_world.sh > ./out/info-lmdb-exp-$i-4.txt
+echo "Batch 30 transactions with 1 coins"
 
-    echo "Exp $i Batch 50 transactions with 0.001 coins"
+./3-transaction-emoji.sh 1 30
+./mine-purge-wallet.sh 15
 
-    ./3-transaction-emoji.sh 0.001 50
-    ./mine-purge-wallet.sh 25
+./info_world.sh > ./out/info-lmdb-exp-4.txt
 
-    ./info_world.sh > ./out/info-lmdb-exp-$i-5.txt
+echo "Batch 50 transactions with 0.001 coins"
 
-    echo "Cleanning the blocks"
-    ./mine-purge-wallet.sh 10
+./3-transaction-emoji.sh 0.001 50
+./mine-purge-wallet.sh 25
 
-    ./info_world.sh > ./out/info-lmdb-exp-$i-6.txt
+./info_world.sh > ./out/info-lmdb-exp-5.txt
 
-    # Clean files and kill all epic processes
-    # Kill all the processes
-    echo "Killing the server"
-    kill $SERVER_PID
-    ./clean.sh
-done
+echo "Cleanning the blocks"
+./mine-purge-wallet.sh 10
+
+./info_world.sh > ./out/info-lmdb-exp-6.txt
+
+# Clean files and kill all epic processes
+# Kill all the processes
+echo "Killing the server"
+kill $SERVER_PID

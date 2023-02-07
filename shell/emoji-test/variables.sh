@@ -1,5 +1,6 @@
 export EPIC_SERVER_BINARY=/home/jualns/Desktop/epic/target/release/epic
 export EPIC_WALLET_BINARY=/home/jualns/Desktop/epic-wallet/target/release/epic-wallet
+export EPIC_WALLET_332_BINARY=/home/jualns/Desktop/testing/binaries/epic-wallet
 export EPIC_MINER_BINARY=/home/jualns/Desktop/epic-miner/target/debug/epic-miner
 export WORLD_NAME=world
 export SERVER_PATH=./server-data
