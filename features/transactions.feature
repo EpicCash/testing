@@ -11,17 +11,36 @@ Feature: Test the methods of transactions and interactions between send, receive
     Given I mine some blocks into my wallet
 
   @serial
-  Scenario: Test QR send methods with 2 transactions
+  Scenario: Test QR send methods with 0.0001 coins
+    Given I have a wallet with coins
+    Then I run and save txs command
+    When I send 0.001 coins with qr method
+    And I receive the qr transaction
+    And I finalize the qr transaction
+    And I await confirm the transaction
+    Then I have 2 new transactions in txs
+    And I kill all running epic systems
+
+  @serial
+  Scenario: Test QR send methods with 14 coins
+    Given I have a wallet with coins
+    Then I run and save txs command
+    When I send 14 coins with qr method
+    And I receive the qr transaction
+    And I finalize the qr transaction
+    And I await confirm the transaction
+    Then I have 2 new transactions in txs
+    And I kill all running epic systems
+
+  @serial
+  Scenario: Test QR send methods with 0.00000001 coins
     Given I have a wallet with coins
     Then I run and save txs command
     When I send 0.00000001 coins with qr method
     And I receive the qr transaction
     And I finalize the qr transaction
-    When I send 0.02 coins with qr method
-    And I receive the qr transaction
-    And I finalize the qr transaction
     And I await confirm the transaction
-    Then I have 4 new transactions in txs
+    Then I have 2 new transactions in txs
     And I kill all running epic systems
 
 # Scenario planned but not yet done
