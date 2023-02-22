@@ -5,4 +5,4 @@ Cargo.lock
 .env
 /stored_wallets
 binaries
-shell/qr-test
+shell/qr-test-1
