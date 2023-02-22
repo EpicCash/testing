@@ -189,8 +189,8 @@ async fn send_coins(world: &mut TestingWorld, amount: String, method: String) {
             out_emoji
         }
         "file" => {
-            let file_name = generate_file_name();
-            let response_file_name = generate_response_file_name(&file_name);
+            let file_name = generate_file_name("txt");
+            let response_file_name = generate_response_file_name(&file_name, "file");
             let out_file = send_coins_smallest(
                 &world.chain_type,
                 &world.wallet_binary,
@@ -206,6 +206,25 @@ async fn send_coins(world: &mut TestingWorld, amount: String, method: String) {
             world.transactions.receive_path = response_file_name;
 
             out_file
+        }
+        "qr" => {
+            let qr_name = generate_file_name("png");
+            let response_qr_name = generate_response_file_name(&qr_name, "qr");
+            let out_qr = send_coins_smallest(
+                &world.chain_type,
+                &world.wallet_binary,
+                method,
+                &world.password,
+                amount,
+                &qr_name,
+            );
+
+            // Save the send qr name
+            world.transactions.sent_path = qr_name;
+            // Save the response qr name
+            world.transactions.receive_path = response_qr_name;
+
+            out_qr
         }
 
         _ => panic!("Method not found!"),
@@ -279,7 +298,7 @@ fn receive_step(world: &mut TestingWorld, receive_finalize: String, method: Stri
 
             out_emoji
         }
-        "file" => {
+        "file" | "qr" => {
             let out_file = receive_finalize_coins(
                 &world.chain_type,
                 &world.wallet_binary,

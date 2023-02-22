@@ -214,16 +214,18 @@ pub fn local_now_str() -> String {
 }
 
 /// Return .txt file to send method
-pub fn generate_file_name() -> String {
+pub fn generate_file_name(extention: &str) -> String {
     let name = local_now_str();
-    let sent_file_name = format!("{}.txt", name);
+    let sent_file_name = format!("{name}.{extention}");
     sent_file_name
 }
 
 /// Return response file based on send file
-pub fn generate_response_file_name(sent_file_name: &String) -> String {
-    let response_file_name = format!("{}.response", sent_file_name);
-    response_file_name
+pub fn generate_response_file_name(sent_file_name: &String, method: &str) -> String {
+    match method {
+        "qr" => format!("response_{}", sent_file_name),
+        _ => format!("{}.response", sent_file_name),
+    }
 }
 
 /// Code to return a vector of chain heights of all connected peers
